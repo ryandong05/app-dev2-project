@@ -8,13 +8,18 @@ import 'screens/settings_screen.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:provider/provider.dart';
+import 'models/settings_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => SettingsModel(),
+      child: const MyApp(),
+    ),
   );
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -22,38 +27,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Twitter Clone',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+    return Consumer<SettingsModel>(
+      builder: (context, settings, child) {
+        return MaterialApp(
+          title: 'Twitter Clone',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: const Color(0xFFEEF2F5),
+            cardColor: Colors.white,
+            dividerColor: Colors.grey.shade300,
+            iconTheme: const IconThemeData(color: Colors.grey),
           ),
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.blue,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            cardColor: const Color(0xFF1E1E1E),
+            dividerColor: Colors.grey.shade800,
+            iconTheme: IconThemeData(color: Colors.grey.shade400),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF000000), width: 1.5),
-          ),
-        ),
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const WelcomeScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/search': (context) => const SearchScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
-        '/settings': (context) => const SettingsScreen(),
+          themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const WelcomeScreen(),
+            '/home': (context) => const HomeScreen(),
+            '/search': (context) => const SearchScreen(),
+            '/profile': (context) => const ProfileScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
+            '/settings': (context) => const SettingsScreen(),
+          },
+        );
       },
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/app_navigation_bar.dart';
+import '../models/settings_model.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -25,98 +27,151 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.pushReplacementNamed(context, '/notifications');
         break;
       case NavBarItem.settings:
-      // Already on settings
+        // Already on settings
         break;
     }
   }
 
+  void _showLanguageDialog(BuildContext context) {
+    final settings = Provider.of<SettingsModel>(context, listen: false);
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Select Language'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('English'),
+                  onTap: () {
+                    settings.setLanguage('English');
+                    Navigator.pop(context);
+                  },
+                ),
+                ListTile(
+                  title: const Text('French'),
+                  onTap: () {
+                    settings.setLanguage('French');
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEEF2F5),
-      body: Column(
-        children: [
-          // Navigation Bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.settings,
-            onItemSelected: _handleNavigation,
-            showBackButton: true,
-          ),
-
-          // Settings Title
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: const Text(
-              'Settings',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+    return Consumer<SettingsModel>(
+      builder: (context, settings, child) {
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: Column(
+            children: [
+              // Navigation Bar
+              AppNavigationBar(
+                selectedItem: NavBarItem.settings,
+                onItemSelected: _handleNavigation,
+                showBackButton: true,
               ),
-            ),
-          ),
 
-          // Profile Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFFEEF2F5),
-            child: const Text(
-              '@Profile',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
+              // Settings Title
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'Settings',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // Account Setting
-          _buildSettingItem(
-            title: 'Account',
-            onTap: () {},
-          ),
-
-          // Notifications Setting
-          _buildSettingItem(
-            title: 'Notifications',
-            onTap: () {},
-          ),
-
-          // General Section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFFEEF2F5),
-            child: const Text(
-              'General',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
+              // Profile Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Text(
+                  '@Profile',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
-          ),
 
-          // Language Setting
-          _buildSettingItem(
-            title: 'Language',
-            onTap: () {},
-          ),
+              // Account Setting
+              _buildSettingItem(
+                title: 'Account',
+                onTap: () {
+                  // TODO: Implement account settings
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Account settings coming soon!'),
+                    ),
+                  );
+                },
+              ),
 
-          // Theme Setting
-          _buildSettingItem(
-            title: 'Theme',
-            onTap: () {},
+              // Notifications Setting
+              _buildSettingItem(
+                title: 'Notifications',
+                trailing: Switch(
+                  value: settings.notificationsEnabled,
+                  onChanged: (value) => settings.toggleNotifications(),
+                ),
+                onTap: () {},
+              ),
+
+              // General Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Text(
+                  'General',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+
+              // Language Setting
+              _buildSettingItem(
+                title: 'Language',
+                subtitle: settings.currentLanguage,
+                onTap: () => _showLanguageDialog(context),
+              ),
+
+              // Theme Setting
+              _buildSettingItem(
+                title: 'Dark Mode',
+                trailing: Switch(
+                  value: settings.isDarkMode,
+                  onChanged: (value) => settings.toggleTheme(),
+                ),
+                onTap: () {},
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildSettingItem({
     required String title,
+    String? subtitle,
+    Widget? trailing,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -124,10 +179,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           border: Border(
             bottom: BorderSide(
-              color: Colors.grey.shade300,
+              color: Theme.of(context).dividerColor,
               width: 0.5,
             ),
           ),
@@ -135,17 +190,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+                if (subtitle != null)
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+              ],
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.grey,
-            ),
+            trailing ??
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).iconTheme.color,
+                ),
           ],
         ),
       ),
