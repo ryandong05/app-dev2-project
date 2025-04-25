@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/app_navigation_bar.dart';
 import '../models/settings_model.dart';
+import '../services/auth_service.dart';
+import 'account_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -11,6 +13,24 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _authService = AuthService();
+  String _username = '@Profile';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final username = await _authService.getCurrentUsername();
+    if (mounted) {
+      setState(() {
+        _username = '@${username ?? 'Profile'}';
+      });
+    }
+  }
+
   void _handleNavigation(NavBarItem item) {
     // Handle navigation based on the selected item
     switch (item) {
@@ -98,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(16),
                 color: Theme.of(context).scaffoldBackgroundColor,
                 child: Text(
-                  '@Profile',
+                  _username,
                   style: TextStyle(
                     fontSize: 18,
                     color: Theme.of(context).textTheme.bodySmall?.color,
@@ -110,13 +130,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Account Setting
               _buildSettingItem(
                 title: 'Account',
-                onTap: () {
-                  // TODO: Implement account settings
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Account settings coming soon!'),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AccountSettingsScreen(),
                     ),
                   );
+                  // Reload username when returning from account settings
+                  _loadUsername();
                 },
               ),
 
