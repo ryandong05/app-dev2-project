@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:y/services/auth_service.dart';
 import 'home_screen.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -9,15 +10,43 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final TextEditingController _emailController = TextEditingController(text: "name@example.com");
-  final TextEditingController _passwordController = TextEditingController(text: "password");
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.signInWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -51,28 +80,20 @@ class _SignInScreenState extends State<SignInScreen> {
             // Email field
             const Text(
               'Email',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF747474),
-              ),
+              style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                hintText: 'Enter your email',
-              ),
+              decoration: const InputDecoration(hintText: 'Enter your email'),
             ),
             const SizedBox(height: 20),
 
             // Password field
             const Text(
               'Password',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF747474),
-              ),
+              style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -101,7 +122,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 onPressed: () {
                   // Handle forgot password
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password reset link sent to your email')),
+                    const SnackBar(
+                      content: Text('Password reset link sent to your email'),
+                    ),
                   );
                 },
                 style: TextButton.styleFrom(
@@ -127,13 +150,7 @@ class _SignInScreenState extends State<SignInScreen> {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to home screen after successful login
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                },
+                onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -145,7 +162,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                child: const Text('Submit'),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Submit'),
               ),
             ),
             const SizedBox(height: 24),
