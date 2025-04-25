@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/tweet.dart';
 import '../models/user.dart';
+import '../models/comment.dart';
 import '../utils/tweet_utils.dart';
 
 class TweetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'tweets';
+  final String _commentsCollection = 'comments';
 
   // Add a new tweet
   Future<void> addTweet(Tweet tweet) async {
@@ -170,5 +172,79 @@ class TweetService {
       });
     }
     await batch.commit();
+  }
+
+  // Add a new comment
+  Future<void> addComment(Comment comment) async {
+    // Add the comment
+    await _firestore
+        .collection(_commentsCollection)
+        .doc(comment.id)
+        .set(comment.toMap());
+
+    // Update tweet's comment count
+    await _firestore.collection(_collection).doc(comment.tweetId).update({
+      'comments': FieldValue.increment(1),
+    });
+  }
+
+  // Get comments for a tweet
+  Stream<List<Comment>> getComments(String tweetId) {
+    return _firestore
+        .collection(_commentsCollection)
+        .where('tweetId', isEqualTo: tweetId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          List<Comment> comments = [];
+          for (var doc in snapshot.docs) {
+            comments.add(Comment.fromFirestore(doc));
+          }
+          // Sort comments by createdAt locally
+          comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return comments;
+        });
+  }
+
+  // Like/unlike a comment
+  Future<void> likeComment(String commentId, String userId) async {
+    final doc =
+        await _firestore.collection(_commentsCollection).doc(commentId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final currentLikes = List<String>.from(data['likes'] ?? []);
+
+    if (currentLikes.contains(userId)) {
+      currentLikes.remove(userId);
+    } else {
+      currentLikes.add(userId);
+    }
+
+    // Get user info for likedBy
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    final userName =
+        userDoc.exists ? userDoc.data()!['name'] ?? 'Anonymous' : 'Anonymous';
+    final likedBy = List<String>.from(data['likedBy'] ?? []);
+
+    if (currentLikes.contains(userId)) {
+      if (!likedBy.contains(userName)) likedBy.add(userName);
+    } else {
+      likedBy.remove(userName);
+    }
+
+    await _firestore.collection(_commentsCollection).doc(commentId).update({
+      'likes': currentLikes,
+      'likedBy': likedBy,
+    });
+  }
+
+  // Delete a comment
+  Future<void> deleteComment(String commentId, String tweetId) async {
+    await _firestore.collection(_commentsCollection).doc(commentId).delete();
+
+    // Decrement tweet's comment count
+    await _firestore.collection(_collection).doc(tweetId).update({
+      'comments': FieldValue.increment(-1),
+    });
   }
 }
