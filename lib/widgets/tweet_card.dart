@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/tweet.dart';
 import '../models/user.dart';
 import '../models/comment.dart';
@@ -350,14 +351,38 @@ class _TweetCardState extends State<TweetCard> {
                               onTap: _handleRetweet,
                               color: _isRetweeted ? Colors.green : null,
                             ),
-                            _buildActionButton(
-                              icon:
-                                  _isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                              count: _likes.length,
-                              onTap: _handleLike,
-                              color: _isLiked ? Colors.red : null,
+                            StreamBuilder<DocumentSnapshot>(
+                              stream: widget._tweetService.getTweetStream(
+                                widget.tweet.id,
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  final data =
+                                      snapshot.data!.data()
+                                          as Map<String, dynamic>;
+                                  final likes = List<String>.from(
+                                    data['likes'] ?? [],
+                                  );
+                                  return _buildActionButton(
+                                    icon:
+                                        _isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                    count: likes.length,
+                                    onTap: _handleLike,
+                                    color: _isLiked ? Colors.red : null,
+                                  );
+                                }
+                                return _buildActionButton(
+                                  icon:
+                                      _isLiked
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                  count: _likes.length,
+                                  onTap: _handleLike,
+                                  color: _isLiked ? Colors.red : null,
+                                );
+                              },
                             ),
                             _buildActionButton(icon: Icons.share, onTap: () {}),
                           ],

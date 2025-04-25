@@ -517,4 +517,9 @@ class TweetService {
     }
     await batch.commit();
   }
+
+  // Get real-time updates for a single tweet
+  Stream<DocumentSnapshot> getTweetStream(String tweetId) {
+    return _firestore.collection(_collection).doc(tweetId).snapshots();
+  }
 }
