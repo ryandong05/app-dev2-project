@@ -59,7 +59,7 @@ class AuthService {
     if (user == null) return null;
 
     final doc = await _firestore.collection('users').doc(user.uid).get();
-    return doc.data()?['username'] as String?;
+    return doc.data()?['name'] as String?;
   }
 
   // Update username
@@ -71,7 +71,7 @@ class AuthService {
     final querySnapshot =
         await _firestore
             .collection('users')
-            .where('username', isEqualTo: newUsername)
+            .where('name', isEqualTo: newUsername)
             .where(
               FieldPath.documentId,
               isNotEqualTo: user.uid,
@@ -84,7 +84,7 @@ class AuthService {
 
     // Update the user's document
     await _firestore.collection('users').doc(user.uid).set({
-      'username': newUsername,
+      'handle': newUsername,
       'email': user.email,
       'updatedAt': FieldValue.serverTimestamp(),
       'uid': user.uid, // Store UID for reference

@@ -19,7 +19,9 @@ class _TweetCardState extends State<TweetCard> {
   final TweetService _tweetService = TweetService();
   final AuthService _authService = AuthService();
   bool _isLiked = false;
+  bool _isRetweeted = false;
   List<String> _likes = [];
+  List<String> _retweets = [];
   bool _showComments = false;
   final TextEditingController _commentController = TextEditingController();
 
@@ -27,7 +29,9 @@ class _TweetCardState extends State<TweetCard> {
   void initState() {
     super.initState();
     _likes = widget.tweet.likes;
+    _retweets = widget.tweet.retweets;
     _checkIfLiked();
+    _checkIfRetweeted();
   }
 
   @override
@@ -49,6 +53,19 @@ class _TweetCardState extends State<TweetCard> {
     }
   }
 
+  Future<void> _checkIfRetweeted() async {
+    final currentUser = _authService.currentUser;
+    if (currentUser != null) {
+      final hasRetweeted = await _tweetService.hasUserRetweeted(
+        widget.tweet.id,
+        currentUser.uid,
+      );
+      setState(() {
+        _isRetweeted = hasRetweeted;
+      });
+    }
+  }
+
   Future<void> _handleLike() async {
     final currentUser = _authService.currentUser;
     if (currentUser == null) return;
@@ -60,6 +77,21 @@ class _TweetCardState extends State<TweetCard> {
         _likes = [..._likes, currentUser.uid];
       } else {
         _likes = _likes.where((id) => id != currentUser.uid).toList();
+      }
+    });
+  }
+
+  Future<void> _handleRetweet() async {
+    final currentUser = await _authService.getCurrentUserData();
+    if (currentUser == null) return;
+
+    await _tweetService.retweetTweet(widget.tweet.id, currentUser);
+    setState(() {
+      _isRetweeted = !_isRetweeted;
+      if (_isRetweeted) {
+        _retweets = [..._retweets, currentUser.id];
+      } else {
+        _retweets = _retweets.where((id) => id != currentUser.id).toList();
       }
     });
   }
@@ -128,25 +160,19 @@ class _TweetCardState extends State<TweetCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Liked by or Reposted by
-              if (widget.tweet.likedBy.isNotEmpty ||
-                  widget.tweet.repostedBy != null)
+              if (widget.tweet.isRetweet)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8.0, left: 50),
                   child: Row(
                     children: [
                       Icon(
-                        widget.tweet.repostedBy != null
-                            ? Icons.repeat
-                            : Icons.favorite,
+                        Icons.repeat,
                         size: 16,
                         color: theme.textTheme.bodySmall?.color,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        widget.tweet.repostedBy != null
-                            ? '${widget.tweet.repostedBy} Reposted'
-                            : '${widget.tweet.likedBy.join(' and ')} liked',
+                        '${widget.tweet.retweetedBy} Retweeted',
                         style: TextStyle(
                           color: theme.textTheme.bodySmall?.color,
                           fontSize: 14,
@@ -229,8 +255,9 @@ class _TweetCardState extends State<TweetCard> {
                             ),
                             _buildActionButton(
                               icon: Icons.repeat,
-                              count: widget.tweet.retweets,
-                              onTap: () {},
+                              count: _retweets,
+                              onTap: _handleRetweet,
+                              color: _isRetweeted ? Colors.green : null,
                             ),
                             _buildActionButton(
                               icon:
