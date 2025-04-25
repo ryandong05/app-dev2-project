@@ -97,7 +97,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 id: DateTime.now().millisecondsSinceEpoch.toString(),
                 user: currentUser,
                 content: content,
-                timeAgo: 'now',
+                timeAgo: '', // Will be set by TweetService
+                timestamp:
+                    DateTime.now(), // Will be overwritten by server timestamp
+                comments: 0,
+                reposts: 0,
+                likes: const [],
+                likedBy: const [],
+                imageUrls: media,
+                retweets: const [],
+                replies: const [],
                 hasMedia: media.isNotEmpty,
                 mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
               );

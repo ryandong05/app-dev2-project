@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadTweets();
+    _tweetService.migrateTweets();
   }
 
   void _loadTweets() {
@@ -94,7 +95,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   user: currentUser,
                   content: content,
-                  timeAgo: 'now',
+                  timeAgo: '', // Will be set by TweetService
+                  timestamp:
+                      DateTime.now(), // Will be overwritten by server timestamp
+                  comments: 0,
+                  reposts: 0,
+                  likes: const [],
+                  likedBy: const [],
+                  imageUrls: media,
+                  retweets: const [],
+                  replies: const [],
                   hasMedia: media.isNotEmpty,
                   mediaType:
                       media.isNotEmpty ? MediaType.image : MediaType.none,

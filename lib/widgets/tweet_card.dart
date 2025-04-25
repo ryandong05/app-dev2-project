@@ -101,12 +101,12 @@ class TweetCard extends StatelessWidget {
                       children: [
                         _buildActionButton(
                           icon: Icons.chat_bubble_outline,
-                          count: tweet.comments,
+                          count: tweet.replies,
                           onTap: () {},
                         ),
                         _buildActionButton(
                           icon: Icons.repeat,
-                          count: tweet.reposts,
+                          count: tweet.retweets,
                           onTap: () {},
                         ),
                         _buildActionButton(
@@ -129,7 +129,7 @@ class TweetCard extends StatelessWidget {
 
   Widget _buildActionButton({
     required IconData icon,
-    int count = 0,
+    List<String> count = const [],
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -137,7 +137,10 @@ class TweetCard extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20),
-          if (count > 0) ...[const SizedBox(width: 4), Text(count.toString())],
+          if (count.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            Text(count.length.toString(), style: const TextStyle(fontSize: 14)),
+          ],
         ],
       ),
     );

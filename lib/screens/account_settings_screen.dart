@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/tweet_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({Key? key}) : super(key: key);
@@ -83,7 +84,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
     setState(() => _isUsernameLoading = true);
     try {
+      final currentUser = await _authService.getCurrentUserData();
+      if (currentUser == null) {
+        throw 'No user logged in';
+      }
+
+      // Update username in auth service
       await _authService.updateUsername(_usernameController.text.trim());
+
+      // Update user profile with new handle
+      await _authService.updateUserProfile(
+        handle: _usernameController.text.trim(),
+      );
+
+      // Get updated user data
+      final updatedUser = await _authService.getCurrentUserData();
+      if (updatedUser != null) {
+        // Update all tweets with new user info
+        final tweetService = TweetService();
+        await tweetService.updateUserTweets(updatedUser);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

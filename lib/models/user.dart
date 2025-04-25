@@ -12,4 +12,24 @@ class User {
     required this.profileImageUrl,
     this.isVerified = false,
   });
+
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      handle: map['handle'] ?? '',
+      profileImageUrl: map['profileImageUrl'] ?? '',
+      isVerified: map['isVerified'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'handle': handle,
+      'profileImageUrl': profileImageUrl,
+      'isVerified': isVerified,
+    };
+  }
 }
