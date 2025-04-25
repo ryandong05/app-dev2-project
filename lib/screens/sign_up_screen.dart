@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:y/services/auth_service.dart';
 import 'home_screen.dart';
 
@@ -25,6 +27,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
   final AuthService _authService = AuthService();
 
+  // Password validation states
+  bool _hasMinLength = false;
+  bool _hasUpperCase = false;
+  bool _hasLowerCase = false;
+  bool _hasNumber = false;
+  bool _hasSpecialChar = false;
+
   final List<String> _genders = [
     "Male",
     "Female",
@@ -43,6 +52,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_validatePassword);
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _passwordController.dispose();
@@ -53,13 +68,59 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  void _validatePassword() {
+    final password = _passwordController.text;
+    setState(() {
+      _hasMinLength = password.length >= 8;
+      _hasUpperCase = password.contains(RegExp(r'[A-Z]'));
+      _hasLowerCase = password.contains(RegExp(r'[a-z]'));
+      _hasNumber = password.contains(RegExp(r'[0-9]'));
+      _hasSpecialChar = password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+    });
+  }
+
+  bool get _isPasswordValid {
+    return _hasMinLength &&
+        _hasUpperCase &&
+        _hasLowerCase &&
+        _hasNumber &&
+        _hasSpecialChar;
+  }
+
   Future<void> _signUp() async {
+    if (!_isPasswordValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please ensure your password meets all requirements'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      await _authService.signUpWithEmailAndPassword(
+      // Create user in Firebase Auth
+      final userCredential = await _authService.signUpWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
       );
+
+      // Store additional user data in Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+            'name': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'phone':
+                '${_phoneCodeController.text}${_phoneNumberController.text}',
+            'dob': _dobController.text,
+            'gender': _selectedGender,
+            'country': _selectedCountry,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -147,7 +208,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Password field
+              // Password field with requirements
               const Text(
                 'Password',
                 style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
@@ -172,6 +233,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     },
                   ),
                 ),
+              ),
+              const SizedBox(height: 8),
+              // Password requirements
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRequirement('At least 8 characters', _hasMinLength),
+                  _buildRequirement(
+                    'At least one uppercase letter',
+                    _hasUpperCase,
+                  ),
+                  _buildRequirement(
+                    'At least one lowercase letter',
+                    _hasLowerCase,
+                  ),
+                  _buildRequirement('At least one number', _hasNumber),
+                  _buildRequirement(
+                    'At least one special character',
+                    _hasSpecialChar,
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
@@ -377,6 +459,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRequirement(String text, bool isMet) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle : Icons.circle,
+            size: 16,
+            color: isMet ? Colors.green : Colors.grey,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: isMet ? Colors.green : Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }
