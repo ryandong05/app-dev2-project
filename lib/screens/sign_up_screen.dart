@@ -141,6 +141,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final theme = Theme.of(context);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000, 1, 1),
@@ -149,10 +150,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.black,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
+            colorScheme: ColorScheme.light(
+              primary:
+                  theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+              onPrimary:
+                  theme.brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
+              onSurface: theme.textTheme.bodyLarge?.color ?? Colors.black,
             ),
           ),
           child: child!,
@@ -169,19 +176,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Sign Up',
           style: TextStyle(
-            color: Colors.black,
+            color: theme.textTheme.bodyLarge?.color,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -195,36 +204,58 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Name field
-              const Text(
+              Text(
                 'Name*',
-                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
                   hintText: 'Enter your full name',
+                  hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.primaryColor),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              // Password field with requirements
-              const Text(
+              // Password field
+              Text(
                 'Password',
-                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
+                  hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.primaryColor),
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off
                           : Icons.visibility,
-                      color: Colors.black,
+                      color: theme.iconTheme.color,
                     ),
                     onPressed: () {
                       setState(() {
@@ -258,9 +289,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 20),
 
               // Phone number field
-              const Text(
+              Text(
                 'Phone no.*',
-                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -270,10 +304,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: TextField(
                       controller: _phoneCodeController,
                       keyboardType: TextInputType.phone,
+                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[+0-9]')),
                       ],
-                      decoration: const InputDecoration(hintText: '+1'),
+                      decoration: InputDecoration(
+                        hintText: '+1',
+                        hintStyle: TextStyle(
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: theme.dividerColor),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: theme.primaryColor),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -282,9 +328,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: TextField(
                       controller: _phoneNumberController,
                       keyboardType: TextInputType.phone,
+                      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Phone number',
+                        hintStyle: TextStyle(
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: theme.dividerColor),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: theme.primaryColor),
+                        ),
                       ),
                     ),
                   ),
@@ -293,97 +349,126 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 20),
 
               // Email field
-              const Text(
+              Text(
                 'Email',
-                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(hintText: 'Enter your email'),
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
+                  hintText: 'Enter your email',
+                  hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.primaryColor),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 
               // Date of Birth and Gender
               Row(
                 children: [
-                  // Date of Birth field
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Date of Birth',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF747474),
+                            color: theme.textTheme.bodySmall?.color,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _dobController,
-                          readOnly: true,
+                        InkWell(
                           onTap: () => _selectDate(context),
-                          decoration: const InputDecoration(
-                            hintText: 'MM/DD/YYYY',
-                            suffixIcon: Icon(
-                              Icons.calendar_today,
-                              color: Colors.black,
+                          child: IgnorePointer(
+                            child: TextField(
+                              controller: _dobController,
+                              style: TextStyle(
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'MM/DD/YYYY',
+                                hintStyle: TextStyle(
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: theme.dividerColor,
+                                  ),
+                                ),
+                                focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: theme.primaryColor,
+                                  ),
+                                ),
+                                suffixIcon: Icon(
+                                  Icons.calendar_today,
+                                  color: theme.iconTheme.color,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-
-                  // Gender dropdown
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Gender*',
+                        Text(
+                          'Gender',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF747474),
+                            color: theme.textTheme.bodySmall?.color,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFD9D9D9)),
-                            borderRadius: BorderRadius.circular(12),
+                        DropdownButtonFormField<String>(
+                          value: _selectedGender,
+                          dropdownColor: theme.cardColor,
+                          style: TextStyle(
+                            color: theme.textTheme.bodyLarge?.color,
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedGender,
-                              isExpanded: true,
-                              icon: const Icon(
-                                Icons.arrow_drop_down,
-                                color: Colors.black,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              items:
-                                  _genders.map((String gender) {
-                                    return DropdownMenuItem<String>(
-                                      value: gender,
-                                      child: Text(gender),
-                                    );
-                                  }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  setState(() {
-                                    _selectedGender = newValue;
-                                  });
-                                }
-                              },
+                          decoration: InputDecoration(
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: theme.dividerColor),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: theme.primaryColor),
                             ),
                           ),
+                          items:
+                              _genders.map((String gender) {
+                                return DropdownMenuItem(
+                                  value: gender,
+                                  child: Text(
+                                    gender,
+                                    style: TextStyle(
+                                      color: theme.textTheme.bodyLarge?.color,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedGender = newValue;
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -392,46 +477,48 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Country dropdown
-              const Text(
-                'Country*',
-                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+              // Country
+              Text(
+                'Country',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFD9D9D9)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCountry,
-                    isExpanded: true,
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: Colors.black,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    borderRadius: BorderRadius.circular(12),
-                    items:
-                        _countries.map((String country) {
-                          return DropdownMenuItem<String>(
-                            value: country,
-                            child: Text(country),
-                          );
-                        }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() {
-                          _selectedCountry = newValue;
-                        });
-                      }
-                    },
+              DropdownButtonFormField<String>(
+                value: _selectedCountry,
+                dropdownColor: theme.cardColor,
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.primaryColor),
                   ),
                 ),
+                items:
+                    _countries.map((String country) {
+                      return DropdownMenuItem(
+                        value: country,
+                        child: Text(
+                          country,
+                          style: TextStyle(
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedCountry = newValue;
+                    });
+                  }
+                },
               ),
-
-              const SizedBox(height: 60),
+              const SizedBox(height: 32),
 
               // Submit button
               SizedBox(
@@ -440,8 +527,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    backgroundColor:
+                        theme.brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                    foregroundColor:
+                        theme.brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

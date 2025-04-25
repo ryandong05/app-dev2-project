@@ -51,19 +51,21 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Sign In',
           style: TextStyle(
-            color: Colors.black,
+            color: theme.textTheme.bodyLarge?.color,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -78,33 +80,57 @@ class _SignInScreenState extends State<SignInScreen> {
             const Spacer(flex: 2),
 
             // Email field
-            const Text(
+            Text(
               'Email',
-              style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+              style: TextStyle(
+                fontSize: 16,
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(hintText: 'Enter your email'),
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: 'Enter your email',
+                hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.dividerColor),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.primaryColor),
+                ),
+              ),
             ),
             const SizedBox(height: 20),
 
             // Password field
-            const Text(
+            Text(
               'Password',
-              style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
+              style: TextStyle(
+                fontSize: 16,
+                color: theme.textTheme.bodySmall?.color,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _passwordController,
               obscureText: _obscurePassword,
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 hintText: 'Enter your password',
+                hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.dividerColor),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.primaryColor),
+                ),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.black,
+                    color: theme.iconTheme.color,
                   ),
                   onPressed: () {
                     setState(() {
@@ -122,8 +148,12 @@ class _SignInScreenState extends State<SignInScreen> {
                 onPressed: () {
                   // Handle forgot password
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password reset link sent to your email'),
+                    SnackBar(
+                      content: Text(
+                        'Password reset link sent to your email',
+                        style: TextStyle(color: theme.colorScheme.onPrimary),
+                      ),
+                      backgroundColor: theme.colorScheme.primary,
                     ),
                   );
                 },
@@ -131,13 +161,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   padding: EdgeInsets.zero,
                   minimumSize: const Size(0, 0),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: Colors.black,
+                  foregroundColor: theme.textTheme.bodyLarge?.color,
                 ),
-                child: const Text(
+                child: Text(
                   'Forgot password?',
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                     fontSize: 14,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
               ),
@@ -152,8 +183,14 @@ class _SignInScreenState extends State<SignInScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor:
+                      theme.brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                  foregroundColor:
+                      theme.brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
