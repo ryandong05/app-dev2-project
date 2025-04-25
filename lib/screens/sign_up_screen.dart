@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
+import 'package:y/services/auth_service.dart';
 import 'home_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -12,19 +12,35 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final TextEditingController _nameController = TextEditingController(text: "John Doe");
-  final TextEditingController _passwordController = TextEditingController(text: "password");
-  final TextEditingController _phoneCodeController = TextEditingController(text: "+514");
-  final TextEditingController _phoneNumberController = TextEditingController(text: "1234567");
-  final TextEditingController _emailController = TextEditingController(text: "name@example.com");
-  final TextEditingController _dobController = TextEditingController(text: "01/01/2000");
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneCodeController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
 
   String _selectedGender = "Male";
   String _selectedCountry = "Canada";
   bool _obscurePassword = true;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
-  final List<String> _genders = ["Male", "Female", "Other", "Prefer not to say"];
-  final List<String> _countries = ["Canada", "United States", "Mexico", "United Kingdom", "France", "Germany", "Japan", "Australia"];
+  final List<String> _genders = [
+    "Male",
+    "Female",
+    "Other",
+    "Prefer not to say",
+  ];
+  final List<String> _countries = [
+    "Canada",
+    "United States",
+    "Mexico",
+    "United Kingdom",
+    "France",
+    "Germany",
+    "Japan",
+    "Australia",
+  ];
 
   @override
   void dispose() {
@@ -35,6 +51,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailController.dispose();
     _dobController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signUp() async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.signUpWithEmailAndPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -94,10 +136,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Name field
               const Text(
                 'Name*',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF747474),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -111,10 +150,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Password field
               const Text(
                 'Password',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF747474),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -124,7 +160,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   hintText: 'Enter your password',
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.black,
                     ),
                     onPressed: () {
@@ -140,10 +178,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Phone number field
               const Text(
                 'Phone no.*',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF747474),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
               ),
               const SizedBox(height: 8),
               Row(
@@ -156,9 +191,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[+0-9]')),
                       ],
-                      decoration: const InputDecoration(
-                        hintText: '+1',
-                      ),
+                      decoration: const InputDecoration(hintText: '+1'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -167,9 +200,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: TextField(
                       controller: _phoneNumberController,
                       keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: const InputDecoration(
                         hintText: 'Phone number',
                       ),
@@ -182,18 +213,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Email field
               const Text(
                 'Email',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF747474),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your email',
-                ),
+                decoration: const InputDecoration(hintText: 'Enter your email'),
               ),
               const SizedBox(height: 20),
 
@@ -219,7 +245,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onTap: () => _selectDate(context),
                           decoration: const InputDecoration(
                             hintText: 'MM/DD/YYYY',
-                            suffixIcon: Icon(Icons.calendar_today, color: Colors.black),
+                            suffixIcon: Icon(
+                              Icons.calendar_today,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                       ],
@@ -249,15 +278,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             child: DropdownButton<String>(
                               value: _selectedGender,
                               isExpanded: true,
-                              icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.black,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               borderRadius: BorderRadius.circular(12),
-                              items: _genders.map((String gender) {
-                                return DropdownMenuItem<String>(
-                                  value: gender,
-                                  child: Text(gender),
-                                );
-                              }).toList(),
+                              items:
+                                  _genders.map((String gender) {
+                                    return DropdownMenuItem<String>(
+                                      value: gender,
+                                      child: Text(gender),
+                                    );
+                                  }).toList(),
                               onChanged: (String? newValue) {
                                 if (newValue != null) {
                                   setState(() {
@@ -278,10 +313,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Country dropdown
               const Text(
                 'Country*',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF747474),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF747474)),
               ),
               const SizedBox(height: 8),
               Container(
@@ -293,15 +325,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: DropdownButton<String>(
                     value: _selectedCountry,
                     isExpanded: true,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+                    icon: const Icon(
+                      Icons.arrow_drop_down,
+                      color: Colors.black,
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     borderRadius: BorderRadius.circular(12),
-                    items: _countries.map((String country) {
-                      return DropdownMenuItem<String>(
-                        value: country,
-                        child: Text(country),
-                      );
-                    }).toList(),
+                    items:
+                        _countries.map((String country) {
+                          return DropdownMenuItem<String>(
+                            value: country,
+                            child: Text(country),
+                          );
+                        }).toList(),
                     onChanged: (String? newValue) {
                       if (newValue != null) {
                         setState(() {
@@ -320,13 +356,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to home screen after successful registration
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
@@ -338,7 +368,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  child: const Text('Submit'),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text('Submit'),
                 ),
               ),
             ],
