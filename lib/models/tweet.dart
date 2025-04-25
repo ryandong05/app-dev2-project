@@ -13,8 +13,8 @@ class Tweet {
   final DateTime timestamp;
   final int comments;
   final int reposts;
-  final List<String> likes;
-  final List<String> likedBy;
+  final List<String> likes; // Contains user IDs who liked the tweet
+  final List<String> likedBy; // Contains names of users who liked the tweet
   final String? repostedBy;
   final bool isThread;
   final bool hasMedia;

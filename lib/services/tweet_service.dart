@@ -43,39 +43,57 @@ class TweetService {
         .collection(_collection)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
+        .asyncMap((snapshot) async {
+          List<Tweet> tweets = [];
+          for (var doc in snapshot.docs) {
             final data = doc.data();
             final timestamp = data['createdAt'] as Timestamp?;
             final createdAt = timestamp?.toDate() ?? DateTime.now();
-            return Tweet(
-              id: data['id'],
-              user: User(
-                id: data['user']['id'],
-                name: data['user']['name'],
-                handle: data['user']['handle'],
-                profileImageUrl: data['user']['profileImageUrl'],
-                isVerified: data['user']['isVerified'] ?? false,
+
+            // Get user info for each like
+            List<String> likedByNames = [];
+            if (data['likedBy'] != null) {
+              for (String userId in List<String>.from(data['likedBy'])) {
+                final userDoc =
+                    await _firestore.collection('users').doc(userId).get();
+                if (userDoc.exists) {
+                  final userData = userDoc.data()!;
+                  likedByNames.add(userData['name'] ?? 'Anonymous');
+                }
+              }
+            }
+
+            tweets.add(
+              Tweet(
+                id: data['id'],
+                user: User(
+                  id: data['user']['id'],
+                  name: data['user']['name'],
+                  handle: data['user']['handle'],
+                  profileImageUrl: data['user']['profileImageUrl'],
+                  isVerified: data['user']['isVerified'] ?? false,
+                ),
+                content: data['content'],
+                timeAgo: TweetUtils.formatTimeAgo(createdAt),
+                timestamp: createdAt,
+                comments: data['comments'] ?? 0,
+                reposts: data['reposts'] ?? 0,
+                likes: List<String>.from(data['likes'] ?? []),
+                likedBy: likedByNames,
+                repostedBy: data['repostedBy'],
+                isThread: data['isThread'] ?? false,
+                hasMedia: data['hasMedia'] ?? false,
+                mediaType: MediaType.values[data['mediaType'] ?? 0],
+                imageUrls: List<String>.from(data['imageUrls'] ?? []),
+                retweets: List<String>.from(data['retweets'] ?? []),
+                replies: List<String>.from(data['replies'] ?? []),
+                parentTweetId: data['parentTweetId'],
+                isRetweet: data['isRetweet'] ?? false,
+                retweetedBy: data['retweetedBy'],
               ),
-              content: data['content'],
-              timeAgo: TweetUtils.formatTimeAgo(createdAt),
-              timestamp: createdAt,
-              comments: data['comments'] ?? 0,
-              reposts: data['reposts'] ?? 0,
-              likes: List<String>.from(data['likes'] ?? []),
-              likedBy: List<String>.from(data['likedBy'] ?? []),
-              repostedBy: data['repostedBy'],
-              isThread: data['isThread'] ?? false,
-              hasMedia: data['hasMedia'] ?? false,
-              mediaType: MediaType.values[data['mediaType'] ?? 0],
-              imageUrls: List<String>.from(data['imageUrls'] ?? []),
-              retweets: List<String>.from(data['retweets'] ?? []),
-              replies: List<String>.from(data['replies'] ?? []),
-              parentTweetId: data['parentTweetId'],
-              isRetweet: data['isRetweet'] ?? false,
-              retweetedBy: data['retweetedBy'],
             );
-          }).toList();
+          }
+          return tweets;
         });
   }
 
@@ -85,6 +103,35 @@ class TweetService {
       'likes': likedBy,
       'likedBy': likedBy,
     });
+  }
+
+  // Like a tweet
+  Future<void> likeTweet(String tweetId, String userId) async {
+    final doc = await _firestore.collection(_collection).doc(tweetId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final currentLikes = List<String>.from(data['likes'] ?? []);
+
+    if (currentLikes.contains(userId)) {
+      // Unlike
+      currentLikes.remove(userId);
+    } else {
+      // Like
+      currentLikes.add(userId);
+    }
+
+    await updateTweetLikes(tweetId, currentLikes);
+  }
+
+  // Check if a user has liked a tweet
+  Future<bool> hasUserLikedTweet(String tweetId, String userId) async {
+    final doc = await _firestore.collection(_collection).doc(tweetId).get();
+    if (!doc.exists) return false;
+
+    final data = doc.data()!;
+    final currentLikes = List<String>.from(data['likes'] ?? []);
+    return currentLikes.contains(userId);
   }
 
   // Migrate existing tweets to use List<String> for likes
