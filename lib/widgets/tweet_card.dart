@@ -1,64 +1,6 @@
 import 'package:flutter/material.dart';
-
-enum MediaType { image, video, none }
-
-class User {
-  final String id;
-  final String name;
-  final String handle;
-  final String profileImageUrl;
-  final bool isVerified;
-
-  User({
-    required this.id,
-    required this.name,
-    required this.handle,
-    required this.profileImageUrl,
-    this.isVerified = false,
-  });
-}
-
-class Tweet {
-  final String id;
-  final User user;
-  final String content;
-  final String timeAgo;
-  final int comments;
-  final int reposts;
-  final int likes;
-  final List<String> likedBy;
-  final String? repostedBy;
-  final bool isThread;
-  final List<String> hashtags;
-  final bool hasMedia;
-  final MediaType mediaType;
-  final int? mediaViews;
-  final bool hasLink;
-  final String? linkTitle;
-  final String? linkDomain;
-  final String? linkImageUrl;
-
-  Tweet({
-    required this.id,
-    required this.user,
-    required this.content,
-    required this.timeAgo,
-    this.comments = 0,
-    this.reposts = 0,
-    this.likes = 0,
-    this.likedBy = const [],
-    this.repostedBy,
-    this.isThread = false,
-    this.hashtags = const [],
-    this.hasMedia = false,
-    this.mediaType = MediaType.none,
-    this.mediaViews,
-    this.hasLink = false,
-    this.linkTitle,
-    this.linkDomain,
-    this.linkImageUrl,
-  });
-}
+import '../models/tweet.dart';
+import '../models/user.dart';
 
 class TweetCard extends StatelessWidget {
   final Tweet tweet;
@@ -99,314 +41,82 @@ class TweetCard extends StatelessWidget {
                 ],
               ),
             ),
-
+          // Tweet content
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Profile image
               CircleAvatar(
-                radius: 24,
+                radius: 20,
                 backgroundImage: NetworkImage(tweet.user.profileImageUrl),
               ),
               const SizedBox(width: 12),
-
               // Tweet content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // User info and time
+                    // User info
                     Row(
                       children: [
                         Text(
                           tweet.user.name,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
                         if (tweet.user.isVerified)
                           const Padding(
-                            padding: EdgeInsets.only(left: 4.0),
+                            padding: EdgeInsets.only(left: 4),
                             child: Icon(
                               Icons.verified,
-                              color: Colors.blue,
                               size: 16,
+                              color: Colors.blue,
                             ),
                           ),
+                        const SizedBox(width: 4),
                         Text(
-                          ' @${tweet.user.handle} · ${tweet.timeAgo}',
+                          '@${tweet.user.handle}',
                           style: TextStyle(
                             color: theme.textTheme.bodySmall?.color,
-                            fontSize: 14,
                           ),
                         ),
-                        const Spacer(),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: theme.textTheme.bodySmall?.color,
+                        const SizedBox(width: 4),
+                        Text(
+                          '· ${tweet.timeAgo}',
+                          style: TextStyle(
+                            color: theme.textTheme.bodySmall?.color,
+                          ),
                         ),
                       ],
                     ),
-
+                    const SizedBox(height: 4),
                     // Tweet text
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Text(
-                        tweet.content,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: theme.textTheme.bodyLarge?.color,
-                        ),
-                      ),
-                    ),
-
-                    // Hashtags
-                    if (tweet.hashtags.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                        child: Wrap(
-                          spacing: 4,
-                          children:
-                              tweet.hashtags.map((tag) {
-                                return Text(
-                                  '#$tag',
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 16,
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-
-                    // Media
-                    if (tweet.hasMedia)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                'https://picsum.photos/400/300',
-                                width: double.infinity,
-                                height: 200,
-                                fit: BoxFit.cover,
-                              ),
-                              if (tweet.mediaType == MediaType.video)
-                                Positioned.fill(
-                                  child: Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: const Icon(
-                                        Icons.play_arrow,
-                                        color: Colors.white,
-                                        size: 32,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (tweet.mediaType == MediaType.video &&
-                                  tweet.mediaViews != null)
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '0:11',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Link preview
-                    if (tweet.hasLink)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.dividerColor),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (tweet.linkImageUrl != null)
-                                Image.network(
-                                  tweet.linkImageUrl!,
-                                  width: double.infinity,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                              Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (tweet.linkTitle != null)
-                                      Text(
-                                        tweet.linkTitle!,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color:
-                                              theme.textTheme.bodyLarge?.color,
-                                        ),
-                                      ),
-                                    if (tweet.linkDomain != null)
-                                      Text(
-                                        tweet.linkDomain!,
-                                        style: TextStyle(
-                                          color:
-                                              theme.textTheme.bodySmall?.color,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Media views
-                    if (tweet.mediaType == MediaType.video &&
-                        tweet.mediaViews != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                        child: Text(
-                          '${tweet.mediaViews} views',
-                          style: TextStyle(
-                            color: theme.textTheme.bodySmall?.color,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-
+                    Text(tweet.content, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 12),
                     // Tweet actions
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Comments
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                color: theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.comments),
-                                style: TextStyle(
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Reposts
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.repeat,
-                                color: theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.reposts),
-                                style: TextStyle(
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Likes
-                          Row(
-                            children: [
-                              Icon(
-                                tweet.likes > 0
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color:
-                                    tweet.likes > 0
-                                        ? Colors.red
-                                        : theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.likes),
-                                style: TextStyle(
-                                  color:
-                                      tweet.likes > 0
-                                          ? Colors.red
-                                          : theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Share
-                          Icon(
-                            Icons.share,
-                            color: theme.textTheme.bodySmall?.color,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Show thread
-                    if (tweet.isThread)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundImage: NetworkImage(
-                                tweet.user.profileImageUrl,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Show this thread',
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.chat_bubble_outline,
+                          count: tweet.comments,
+                          onTap: () {},
                         ),
-                      ),
+                        _buildActionButton(
+                          icon: Icons.repeat,
+                          count: tweet.reposts,
+                          onTap: () {},
+                        ),
+                        _buildActionButton(
+                          icon: Icons.favorite_border,
+                          count: tweet.likes,
+                          onTap: () {},
+                        ),
+                        _buildActionButton(icon: Icons.share, onTap: () {}),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -417,11 +127,19 @@ class TweetCard extends StatelessWidget {
     );
   }
 
-  String formatNumber(int number) {
-    if (number >= 1000) {
-      double num = number / 1000;
-      return '${num.toStringAsFixed(num.truncateToDouble() == num ? 0 : 1)}K';
-    }
-    return number.toString();
+  Widget _buildActionButton({
+    required IconData icon,
+    int count = 0,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          if (count > 0) ...[const SizedBox(width: 4), Text(count.toString())],
+        ],
+      ),
+    );
   }
 }

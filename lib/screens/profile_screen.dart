@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../utils/tweet_utils.dart';
 import '../widgets/app_navigation_bar.dart';
 import '../widgets/tweet_card.dart';
+import '../models/tweet.dart';
+import '../models/user.dart';
+import '../services/tweet_service.dart';
+import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -13,11 +17,23 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TweetService _tweetService = TweetService();
+  final AuthService _authService = AuthService();
+  List<Tweet> _tweets = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadTweets();
+  }
+
+  void _loadTweets() {
+    _tweetService.getTweets().listen((tweets) {
+      setState(() {
+        _tweets = tweets;
+      });
+    });
   }
 
   @override
@@ -250,43 +266,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               controller: _tabController,
               children: [
                 // Posts Tab
-                ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16, top: 8),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.push_pin, size: 16, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            'Pinned Tweet',
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                    TweetCard(
-                      tweet: Tweet(
-                        id: '1',
-                        user: User(
-                          id: '1',
-                          name: 'Pixsellz',
-                          handle: 'pixsellz',
-                          profileImageUrl:
-                              'https://randomuser.me/api/portraits/men/1.jpg',
-                        ),
-                        content: 'The quick brown fox jumps over the lazy dog!',
-                        timeAgo: '7/31/19',
-                        comments: 2,
-                        reposts: 2,
-                        likes: 15,
-                        hashtags: ['prototyping', 'wireframe', 'uiux', 'ux'],
-                        hasMedia: true,
-                        mediaType: MediaType.video,
-                        mediaViews: 109,
-                      ),
-                    ),
-                  ],
+                ListView.separated(
+                  itemCount: _tweets.length,
+                  separatorBuilder:
+                      (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tweet = _tweets[index];
+                    return TweetCard(tweet: tweet);
+                  },
                 ),
 
                 // Posts & Replies Tab
@@ -302,16 +289,32 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      // Inside the build method of _ProfileScreenState, update the floatingActionButton:
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
+          final currentUser = await _authService.getCurrentUserData();
+          if (currentUser == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please sign in to tweet')),
+            );
+            return;
+          }
+
           TweetUtils.showTweetComposer(
             context,
-            onTweet: (content, media) {
-              // Handle the new tweet
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
+            onTweet: (content, media) async {
+              final newTweet = Tweet(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                user: currentUser,
+                content: content,
+                timeAgo: 'now',
+                hasMedia: media.isNotEmpty,
+                mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
+              );
+
+              await _tweetService.addTweet(newTweet);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tweet posted successfully!')),
+              );
             },
           );
         },
