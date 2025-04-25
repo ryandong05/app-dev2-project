@@ -6,6 +6,7 @@ import 'search_screen.dart';
 import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
+import '../widgets/tweet_composer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -25,7 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
         handle: 'craig_love',
         profileImageUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
       ),
-      content: 'UXR/UX: You can only bring one item to a remote island to assist your research of native use of tools and usability. What do you bring? #TellMeAboutYou',
+      content:
+          'UXR/UX: You can only bring one item to a remote island to assist your research of native use of tools and usability. What do you bring? #TellMeAboutYou',
       timeAgo: '12h',
       comments: 28,
       reposts: 5,
@@ -57,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
         profileImageUrl: 'https://randomuser.me/api/portraits/women/31.jpg',
         isVerified: true,
       ),
-      content: 'Kobe\'s passing is really sticking w/ me in a way I didn\'t expect.\n\nHe was an icon, the kind of person who wouldn\'t die this way. My wife compared it to Princess Di\'s accident.\n\nBut the end can happen for anyone at any time, & I can\'t help but think of anything else lately.',
+      content:
+          'Kobe\'s passing is really sticking w/ me in a way I didn\'t expect.\n\nHe was an icon, the kind of person who wouldn\'t die this way. My wife compared it to Princess Di\'s accident.\n\nBut the end can happen for anyone at any time, & I can\'t help but think of anything else lately.',
       timeAgo: '14h',
       comments: 7,
       reposts: 1,
@@ -72,7 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
         handle: 'karennne',
         profileImageUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
       ),
-      content: 'Name a show where the lead character is the worst character on the show I\'ll go first\nSabrina Spellman',
+      content:
+          'Name a show where the lead character is the worst character on the show I\'ll go first\nSabrina Spellman',
       timeAgo: '10h',
       comments: 1906,
       reposts: 1249,
@@ -85,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Handle navigation based on the selected item
     switch (item) {
       case NavBarItem.home:
-      // Already on home
+        // Already on home
         break;
       case NavBarItem.search:
         Navigator.push(
@@ -114,10 +118,50 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _showTweetComposer() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: TweetComposer(
+              onTweet: (content, media) {
+                setState(() {
+                  _tweets.insert(
+                    0,
+                    Tweet(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      user: User(
+                        id: 'current_user',
+                        name: 'Current User',
+                        handle: 'current_user',
+                        profileImageUrl:
+                            'https://randomuser.me/api/portraits/men/1.jpg',
+                      ),
+                      content: content,
+                      timeAgo: 'now',
+                      comments: 0,
+                      reposts: 0,
+                      likes: 0,
+                      hasMedia: media.isNotEmpty,
+                      mediaType:
+                          media.isNotEmpty ? MediaType.image : MediaType.none,
+                    ),
+                  );
+                });
+              },
+            ),
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Navigation Bar
@@ -131,7 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: ListView.separated(
               itemCount: _tweets.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
+              separatorBuilder:
+                  (context, index) =>
+                      Divider(height: 1, color: Theme.of(context).dividerColor),
               itemBuilder: (context, index) {
                 final tweet = _tweets[index];
                 return TweetCard(tweet: tweet);
@@ -140,37 +186,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      // Inside the build method of _HomeScreenState, update the floatingActionButton:
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          TweetUtils.showTweetComposer(
-            context,
-            onTweet: (content, media) {
-              // Here you would typically add the tweet to your data source
-              // and refresh the UI
-              setState(() {
-                _tweets.insert(0, Tweet(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  user: User(
-                    id: 'current_user',
-                    name: 'Current User',
-                    handle: 'current_user',
-                    profileImageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
-                  ),
-                  content: content,
-                  timeAgo: 'now',
-                  comments: 0,
-                  reposts: 0,
-                  likes: 0,
-                  hasMedia: media.isNotEmpty,
-                  mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
-                ));
-              });
-            },
-          );
-        },
-        backgroundColor: Colors.black,
-        child: const Icon(Icons.add, color: Colors.white),
+        onPressed: _showTweetComposer,
+        backgroundColor:
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black,
+        foregroundColor:
+            Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }

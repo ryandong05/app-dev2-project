@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum MediaType {
-  image,
-  video,
-  none,
-}
+enum MediaType { image, video, none }
 
 class User {
   final String id;
@@ -71,9 +67,11 @@ class TweetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: theme.cardColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -86,15 +84,15 @@ class TweetCard extends StatelessWidget {
                   Icon(
                     tweet.repostedBy != null ? Icons.repeat : Icons.favorite,
                     size: 16,
-                    color: Colors.grey,
+                    color: theme.textTheme.bodySmall?.color,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     tweet.repostedBy != null
                         ? '${tweet.repostedBy} Reposted'
                         : '${tweet.likedBy.join(' and ')} liked',
-                    style: const TextStyle(
-                      color: Colors.grey,
+                    style: TextStyle(
+                      color: theme.textTheme.bodySmall?.color,
                       fontSize: 14,
                     ),
                   ),
@@ -122,25 +120,33 @@ class TweetCard extends StatelessWidget {
                       children: [
                         Text(
                           tweet.user.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
+                            color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
                         if (tweet.user.isVerified)
                           const Padding(
                             padding: EdgeInsets.only(left: 4.0),
-                            child: Icon(Icons.verified, color: Colors.blue, size: 16),
+                            child: Icon(
+                              Icons.verified,
+                              color: Colors.blue,
+                              size: 16,
+                            ),
                           ),
                         Text(
                           ' @${tweet.user.handle} · ${tweet.timeAgo}',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: theme.textTheme.bodySmall?.color,
                             fontSize: 14,
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
                       ],
                     ),
 
@@ -149,7 +155,10 @@ class TweetCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: Text(
                         tweet.content,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: theme.textTheme.bodyLarge?.color,
+                        ),
                       ),
                     ),
 
@@ -159,15 +168,16 @@ class TweetCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
                         child: Wrap(
                           spacing: 4,
-                          children: tweet.hashtags.map((tag) {
-                            return Text(
-                              '#$tag',
-                              style: const TextStyle(
-                                color: Colors.blue,
-                                fontSize: 16,
-                              ),
-                            );
-                          }).toList(),
+                          children:
+                              tweet.hashtags.map((tag) {
+                                return Text(
+                                  '#$tag',
+                                  style: const TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 16,
+                                  ),
+                                );
+                              }).toList(),
                         ),
                       ),
 
@@ -202,12 +212,16 @@ class TweetCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              if (tweet.mediaType == MediaType.video && tweet.mediaViews != null)
+                              if (tweet.mediaType == MediaType.video &&
+                                  tweet.mediaViews != null)
                                 Positioned(
                                   left: 8,
                                   bottom: 8,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.black.withOpacity(0.7),
                                       borderRadius: BorderRadius.circular(4),
@@ -232,7 +246,7 @@ class TweetCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: theme.dividerColor),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -254,16 +268,19 @@ class TweetCard extends StatelessWidget {
                                     if (tweet.linkTitle != null)
                                       Text(
                                         tweet.linkTitle!,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
+                                          color:
+                                              theme.textTheme.bodyLarge?.color,
                                         ),
                                       ),
                                     if (tweet.linkDomain != null)
                                       Text(
                                         tweet.linkDomain!,
-                                        style: const TextStyle(
-                                          color: Colors.grey,
+                                        style: TextStyle(
+                                          color:
+                                              theme.textTheme.bodySmall?.color,
                                           fontSize: 14,
                                         ),
                                       ),
@@ -276,13 +293,14 @@ class TweetCard extends StatelessWidget {
                       ),
 
                     // Media views
-                    if (tweet.mediaType == MediaType.video && tweet.mediaViews != null)
+                    if (tweet.mediaType == MediaType.video &&
+                        tweet.mediaViews != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
                         child: Text(
                           '${tweet.mediaViews} views',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: theme.textTheme.bodySmall?.color,
                             fontSize: 14,
                           ),
                         ),
@@ -297,11 +315,17 @@ class TweetCard extends StatelessWidget {
                           // Comments
                           Row(
                             children: [
-                              const Icon(Icons.chat_bubble_outline, color: Colors.grey, size: 18),
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                color: theme.textTheme.bodySmall?.color,
+                                size: 18,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 formatNumber(tweet.comments),
-                                style: const TextStyle(color: Colors.grey),
+                                style: TextStyle(
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
                               ),
                             ],
                           ),
@@ -309,11 +333,17 @@ class TweetCard extends StatelessWidget {
                           // Reposts
                           Row(
                             children: [
-                              const Icon(Icons.repeat, color: Colors.grey, size: 18),
+                              Icon(
+                                Icons.repeat,
+                                color: theme.textTheme.bodySmall?.color,
+                                size: 18,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 formatNumber(tweet.reposts),
-                                style: const TextStyle(color: Colors.grey),
+                                style: TextStyle(
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
                               ),
                             ],
                           ),
@@ -322,22 +352,34 @@ class TweetCard extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                tweet.likes > 0 ? Icons.favorite : Icons.favorite_border,
-                                color: tweet.likes > 0 ? Colors.red : Colors.grey,
+                                tweet.likes > 0
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color:
+                                    tweet.likes > 0
+                                        ? Colors.red
+                                        : theme.textTheme.bodySmall?.color,
                                 size: 18,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 formatNumber(tweet.likes),
                                 style: TextStyle(
-                                  color: tweet.likes > 0 ? Colors.red : Colors.grey,
+                                  color:
+                                      tweet.likes > 0
+                                          ? Colors.red
+                                          : theme.textTheme.bodySmall?.color,
                                 ),
                               ),
                             ],
                           ),
 
                           // Share
-                          const Icon(Icons.share, color: Colors.grey, size: 18),
+                          Icon(
+                            Icons.share,
+                            color: theme.textTheme.bodySmall?.color,
+                            size: 18,
+                          ),
                         ],
                       ),
                     ),
@@ -350,7 +392,9 @@ class TweetCard extends StatelessWidget {
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundImage: NetworkImage(tweet.user.profileImageUrl),
+                              backgroundImage: NetworkImage(
+                                tweet.user.profileImageUrl,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             const Text(

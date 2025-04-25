@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum NavBarItem {
-  home,
-  search,
-  profile,
-  notifications,
-  settings
-}
+enum NavBarItem { home, search, profile, notifications, settings }
 
 class AppNavigationBar extends StatelessWidget {
   final NavBarItem selectedItem;
@@ -24,15 +18,14 @@ class AppNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       height: 60,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade300,
-            width: 0.5,
-          ),
+          bottom: BorderSide(color: theme.dividerColor, width: 0.5),
         ),
       ),
       child: Row(
@@ -40,7 +33,7 @@ class AppNavigationBar extends StatelessWidget {
           // Back button
           if (showBackButton)
             IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
             ),
 
@@ -49,23 +42,24 @@ class AppNavigationBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                _buildNavItem(context, icon: Icons.home, item: NavBarItem.home),
                 _buildNavItem(
-                  icon: Icons.home,
-                  item: NavBarItem.home,
-                ),
-                _buildNavItem(
+                  context,
                   icon: Icons.search,
                   item: NavBarItem.search,
                 ),
                 _buildNavItem(
+                  context,
                   icon: Icons.person,
                   item: NavBarItem.profile,
                 ),
                 _buildNavItem(
+                  context,
                   icon: Icons.notifications_none,
                   item: NavBarItem.notifications,
                 ),
                 _buildNavItem(
+                  context,
                   icon: Icons.settings,
                   item: NavBarItem.settings,
                 ),
@@ -77,10 +71,12 @@ class AppNavigationBar extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem({
+  Widget _buildNavItem(
+    BuildContext context, {
     required IconData icon,
     required NavBarItem item,
   }) {
+    final theme = Theme.of(context);
     final bool isSelected = selectedItem == item;
 
     return GestureDetector(
@@ -89,12 +85,24 @@ class AppNavigationBar extends StatelessWidget {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.grey.shade200 : Colors.transparent,
+          color:
+              isSelected
+                  ? theme.brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade200
+                  : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
-          color: isSelected ? Colors.black : Colors.grey,
+          color:
+              isSelected
+                  ? theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black
+                  : theme.brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey,
           size: 24,
         ),
       ),

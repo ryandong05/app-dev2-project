@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class TweetComposer extends StatefulWidget {
   final Function(String, List<String>)? onTweet;
 
-  const TweetComposer({
-    Key? key,
-    this.onTweet,
-  }) : super(key: key);
+  const TweetComposer({Key? key, this.onTweet}) : super(key: key);
 
   @override
   State<TweetComposer> createState() => _TweetComposerState();
@@ -49,7 +46,9 @@ class _TweetComposerState extends State<TweetComposer> {
     // This would typically open a media picker
     // For now, we'll just add a placeholder
     setState(() {
-      _selectedMedia.add('https://picsum.photos/400/300?random=${_selectedMedia.length}');
+      _selectedMedia.add(
+        'https://picsum.photos/400/300?random=${_selectedMedia.length}',
+      );
     });
   }
 
@@ -61,6 +60,7 @@ class _TweetComposerState extends State<TweetComposer> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final int remainingChars = _maxCharacters - _tweetController.text.length;
     final bool isOverLimit = remainingChars < 0;
 
@@ -68,7 +68,7 @@ class _TweetComposerState extends State<TweetComposer> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      color: Colors.white,
+      color: theme.cardColor,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -80,42 +80,58 @@ class _TweetComposerState extends State<TweetComposer> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: theme.textTheme.bodyLarge?.color,
                       fontSize: 16,
                     ),
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: isOverLimit || _tweetController.text.trim().isEmpty || _isLoading
-                      ? null
-                      : _handleTweet,
+                  onPressed:
+                      isOverLimit ||
+                              _tweetController.text.trim().isEmpty ||
+                              _isLoading
+                          ? null
+                          : _handleTweet,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    backgroundColor:
+                        theme.brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                    foregroundColor:
+                        theme.brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
                     ),
-                  )
-                      : const Text('Post'),
+                  ),
+                  child:
+                      _isLoading
+                          ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color:
+                                  theme.brightness == Brightness.dark
+                                      ? Colors.black
+                                      : Colors.white,
+                            ),
+                          )
+                          : const Text('Post'),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 1),
+          Divider(height: 1, color: theme.dividerColor),
 
           // Tweet Composer
           Padding(
@@ -124,12 +140,15 @@ class _TweetComposerState extends State<TweetComposer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Profile Image
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  backgroundColor: Colors.grey,
+                  backgroundColor:
+                      theme.brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.grey,
                   child: Icon(
                     Icons.person,
-                    color: Colors.white,
+                    color: theme.scaffoldBackgroundColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -140,8 +159,12 @@ class _TweetComposerState extends State<TweetComposer> {
                     controller: _tweetController,
                     maxLines: 5,
                     minLines: 3,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                    decoration: InputDecoration(
                       hintText: "What's happening?",
+                      hintStyle: TextStyle(
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -182,8 +205,8 @@ class _TweetComposerState extends State<TweetComposer> {
                             onTap: () => _removeMedia(index),
                             child: Container(
                               padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.7),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -201,7 +224,7 @@ class _TweetComposerState extends State<TweetComposer> {
               ),
             ),
 
-          const Divider(height: 1),
+          Divider(height: 1, color: theme.dividerColor),
 
           // Footer
           Padding(
@@ -225,7 +248,10 @@ class _TweetComposerState extends State<TweetComposer> {
                       onPressed: () {},
                     ),
                     IconButton(
-                      icon: const Icon(Icons.emoji_emotions, color: Colors.blue),
+                      icon: const Icon(
+                        Icons.emoji_emotions,
+                        color: Colors.blue,
+                      ),
                       onPressed: () {},
                     ),
                     IconButton(
@@ -242,7 +268,7 @@ class _TweetComposerState extends State<TweetComposer> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isOverLimit ? Colors.red : Colors.grey.shade300,
+                      color: isOverLimit ? Colors.red : theme.dividerColor,
                       width: 2,
                     ),
                   ),
@@ -250,7 +276,10 @@ class _TweetComposerState extends State<TweetComposer> {
                     child: Text(
                       remainingChars.toString(),
                       style: TextStyle(
-                        color: isOverLimit ? Colors.red : Colors.grey,
+                        color:
+                            isOverLimit
+                                ? Colors.red
+                                : theme.textTheme.bodySmall?.color,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),

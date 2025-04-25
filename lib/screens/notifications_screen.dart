@@ -21,7 +21,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         handle: 'marianeee',
         profileImageUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
       ),
-      content: 'Hey\n@theflaticon @iconmonstr @pixsellz @danielbruce_ @romanshamiin @_vect_ @glyphish !\nCheck our our new article "Top Icons Packs and Resources for Web". You are in! 😎\n👉 marianeee.com/blog/top-icons...',
+      content:
+          'Hey\n@theflaticon @iconmonstr @pixsellz @danielbruce_ @romanshamiin @_vect_ @glyphish !\nCheck our our new article "Top Icons Packs and Resources for Web". You are in! 😎\n👉 marianeee.com/blog/top-icons...',
       timeAgo: '1/21/20',
       comments: 7,
       reposts: 1,
@@ -39,7 +40,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         handle: 'crownlistllc',
         profileImageUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
       ),
-      content: 'Fragments Android Wireframe Kit  UX Wire was jusr featured in today\'s\ncrownlistllc.com newsletter via @pixsellz',
+      content:
+          'Fragments Android Wireframe Kit  UX Wire was jusr featured in today\'s\ncrownlistllc.com newsletter via @pixsellz',
       timeAgo: '1/9/20',
       comments: 0,
       reposts: 0,
@@ -62,7 +64,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Navigator.pushReplacementNamed(context, '/profile');
         break;
       case NavBarItem.notifications:
-      // Already on notifications
+        // Already on notifications
         break;
       case NavBarItem.settings:
         Navigator.pushReplacementNamed(context, '/settings');
@@ -73,7 +75,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Navigation Bar
@@ -103,9 +105,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             context,
             onTweet: (content, media) {
               // Handle the new tweet
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Posted: $content')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
             },
           );
         },

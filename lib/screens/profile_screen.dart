@@ -10,7 +10,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -35,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         Navigator.pushReplacementNamed(context, '/search');
         break;
       case NavBarItem.profile:
-      // Already on profile
+        // Already on profile
         break;
       case NavBarItem.notifications:
         Navigator.pushReplacementNamed(context, '/notifications');
@@ -48,8 +49,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           // Navigation Bar
@@ -59,14 +62,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             showBackButton: true,
           ),
 
-          // Update the profile header to remove the duplicate back button
+          // Profile Header
           Container(
             height: 150,
-            color: Colors.black,
+            color:
+                theme.brightness == Brightness.dark
+                    ? Colors.grey.shade900
+                    : Colors.black,
             child: Stack(
               children: [
-                // Remove the back button here since we now have it in the navigation bar
-
                 // Profile title
                 const Center(
                   child: Text(
@@ -87,17 +91,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white,
+                        color: theme.scaffoldBackgroundColor,
                         width: 4,
                       ),
                     ),
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 40,
-                      backgroundColor: Colors.black,
+                      backgroundColor:
+                          theme.brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.black,
                       child: Icon(
                         Icons.person,
                         size: 50,
-                        color: Colors.white,
+                        color: theme.scaffoldBackgroundColor,
                       ),
                     ),
                   ),
@@ -116,12 +123,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                side: const BorderSide(color: Colors.grey),
+                side: BorderSide(color: theme.dividerColor),
+                foregroundColor: theme.textTheme.bodyLarge?.color,
               ),
-              child: const Text(
+              child: Text(
                 'Edit profile',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -134,25 +142,27 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Profile',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
-                const Text(
+                Text(
                   '@profile',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: theme.textTheme.bodySmall?.color,
                     fontSize: 14,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'The quick brown fox jumps over the lazy dog.',
                   style: TextStyle(
                     fontSize: 16,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -162,18 +172,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     const SizedBox(width: 4),
                     Text(
                       'example.io',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: Colors.blue, fontSize: 14),
                     ),
                     const SizedBox(width: 16),
-                    const Icon(Icons.calendar_today, color: Colors.grey, size: 16),
+                    Icon(
+                      Icons.calendar_today,
+                      color: theme.textTheme.bodySmall?.color,
+                      size: 16,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Joined September 2018',
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -182,32 +193,34 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       '217',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const Text(
+                    Text(
                       ' Following',
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 14,
                       ),
                     ),
                     const SizedBox(width: 16),
-                    const Text(
+                    Text(
                       '118',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const Text(
+                    Text(
                       ' Followers',
                       style: TextStyle(
-                        color: Colors.grey,
+                        color: theme.textTheme.bodySmall?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -220,8 +233,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           // Tab Bar
           TabBar(
             controller: _tabController,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
+            labelColor: theme.textTheme.bodyLarge?.color,
+            unselectedLabelColor: theme.textTheme.bodySmall?.color,
             indicatorColor: Colors.blue,
             tabs: const [
               Tab(text: 'Posts'),
@@ -247,10 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           SizedBox(width: 4),
                           Text(
                             'Pinned Tweet',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
                           ),
                         ],
                       ),
@@ -262,7 +272,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           id: '1',
                           name: 'Pixsellz',
                           handle: 'pixsellz',
-                          profileImageUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
+                          profileImageUrl:
+                              'https://randomuser.me/api/portraits/men/1.jpg',
                         ),
                         content: 'The quick brown fox jumps over the lazy dog!',
                         timeAgo: '7/31/19',
@@ -298,9 +309,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             context,
             onTweet: (content, media) {
               // Handle the new tweet
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Posted: $content')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
             },
           );
         },

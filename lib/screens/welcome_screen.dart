@@ -7,8 +7,10 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -17,23 +19,25 @@ class WelcomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo
-                const Text(
+                Text(
                   '𝕐',
                   style: TextStyle(
                     fontSize: 120,
                     fontWeight: FontWeight.bold,
+                    color: theme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 32),
 
                 // Tagline
-                const Column(
+                Column(
                   children: [
                     Text(
                       'Connect.',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                     Text(
@@ -41,6 +45,7 @@ class WelcomeScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
                   ],
@@ -55,11 +60,16 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SignUpScreen(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFBDBDBD),
+                      backgroundColor:
+                          theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFFBDBDBD),
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
@@ -83,12 +93,20 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SignInScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const SignInScreen(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEBEBEB),
-                      foregroundColor: Colors.black,
+                      backgroundColor:
+                          theme.brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : const Color(0xFFEBEBEB),
+                      foregroundColor:
+                          theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(32),
                       ),

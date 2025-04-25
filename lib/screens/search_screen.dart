@@ -43,7 +43,7 @@ class _SearchScreenState extends State<SearchScreen> {
         );
         break;
       case NavBarItem.search:
-      // Already on search
+        // Already on search
         break;
       case NavBarItem.profile:
         Navigator.pushReplacement(
@@ -68,8 +68,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEEF2F5),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           // Navigation Bar
@@ -81,17 +83,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
           // Search Bar
           Container(
-            color: const Color(0xFFEEF2F5),
+            color: theme.scaffoldBackgroundColor,
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
               focusNode: _searchFocusNode,
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
                 hintText: 'Search',
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: theme.cardColor,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -107,11 +113,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
               onChanged: (value) {
-                // Handle search query changes
                 setState(() {});
               },
               onSubmitted: (value) {
-                // Handle search submission
                 if (value.isNotEmpty) {
                   // Perform search
                 }
@@ -121,17 +125,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
           // This would be where search results appear
           Expanded(
-            child: _searchController.text.isEmpty
-                ? const Center(
-              child: Text(
-                'Try searching for people, topics, or keywords',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
-              ),
-            )
-                : const SizedBox(), // Search results would go here
+            child:
+                _searchController.text.isEmpty
+                    ? const Center(
+                      child: Text(
+                        'Try searching for people, topics, or keywords',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
+                    )
+                    : const SizedBox(), // Search results would go here
           ),
         ],
       ),
@@ -142,9 +144,9 @@ class _SearchScreenState extends State<SearchScreen> {
             context,
             onTweet: (content, media) {
               // Handle the new tweet
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Posted: $content')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
             },
           );
         },
