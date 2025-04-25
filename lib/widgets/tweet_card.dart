@@ -338,7 +338,11 @@ class _TweetCardState extends State<TweetCard> {
                             _buildActionButton(
                               icon: Icons.chat_bubble_outline,
                               count: widget.tweet.comments,
-                              onTap: _showCommentDialog,
+                              onTap: () {
+                                setState(() {
+                                  _showComments = !_showComments;
+                                });
+                              },
                             ),
                             _buildActionButton(
                               icon: Icons.repeat,
