@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/user.dart' as app_user;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -8,13 +9,57 @@ class AuthService {
   // Get current user
   User? get currentUser => _auth.currentUser;
 
+  // Get current user's data
+  Future<app_user.User?> getCurrentUserData() async {
+    final user = currentUser;
+    if (user == null) return null;
+
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) return null;
+
+    final data = userDoc.data()!;
+    return app_user.User(
+      id: user.uid,
+      name: data['name'] ?? user.displayName ?? 'Anonymous',
+      handle: data['handle'] ?? user.email?.split('@')[0] ?? 'anonymous',
+      profileImageUrl:
+          data['profileImageUrl'] ??
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(data['name'] ?? user.displayName ?? 'Anonymous')}&background=random',
+      isVerified: data['isVerified'] ?? false,
+    );
+  }
+
+  // Create or update user profile
+  Future<void> updateUserProfile({
+    String? name,
+    String? handle,
+    String? profileImageUrl,
+    bool? isVerified,
+  }) async {
+    final user = currentUser;
+    if (user == null) return;
+
+    final userData = {
+      if (name != null) 'name': name,
+      if (handle != null) 'handle': handle,
+      if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+      if (isVerified != null) 'isVerified': isVerified,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .set(userData, SetOptions(merge: true));
+  }
+
   // Get current username
   Future<String?> getCurrentUsername() async {
     final user = currentUser;
     if (user == null) return null;
 
     final doc = await _firestore.collection('users').doc(user.uid).get();
-    return doc.data()?['username'] as String?;
+    return doc.data()?['name'] as String?;
   }
 
   // Update username
@@ -26,7 +71,7 @@ class AuthService {
     final querySnapshot =
         await _firestore
             .collection('users')
-            .where('username', isEqualTo: newUsername)
+            .where('name', isEqualTo: newUsername)
             .where(
               FieldPath.documentId,
               isNotEqualTo: user.uid,
@@ -39,7 +84,7 @@ class AuthService {
 
     // Update the user's document
     await _firestore.collection('users').doc(user.uid).set({
-      'username': newUsername,
+      'handle': newUsername,
       'email': user.email,
       'updatedAt': FieldValue.serverTimestamp(),
       'uid': user.uid, // Store UID for reference

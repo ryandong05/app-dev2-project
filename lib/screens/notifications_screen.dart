@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../utils/tweet_utils.dart';
 import '../widgets/app_navigation_bar.dart';
 import '../widgets/tweet_card.dart';
+import '../models/tweet.dart';
+import '../models/user.dart';
+import '../services/tweet_service.dart';
+import '../services/auth_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -11,45 +15,23 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  // Sample data for tweets
-  final List<Tweet> _tweets = [
-    Tweet(
-      id: '1',
-      user: User(
-        id: '1',
-        name: 'Mariane',
-        handle: 'marianeee',
-        profileImageUrl: 'https://randomuser.me/api/portraits/women/32.jpg',
-      ),
-      content:
-          'Hey\n@theflaticon @iconmonstr @pixsellz @danielbruce_ @romanshamiin @_vect_ @glyphish !\nCheck our our new article "Top Icons Packs and Resources for Web". You are in! 😎\n👉 marianeee.com/blog/top-icons...',
-      timeAgo: '1/21/20',
-      comments: 7,
-      reposts: 1,
-      likes: 3,
-      hasLink: true,
-      linkTitle: 'Top Icons Packs and Resources for Web',
-      linkDomain: 'flatlogic.com',
-      linkImageUrl: 'https://randomuser.me/api/portraits/lego/1.jpg',
-    ),
-    Tweet(
-      id: '2',
-      user: User(
-        id: '2',
-        name: 'CrownList LLC',
-        handle: 'crownlistllc',
-        profileImageUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
-      ),
-      content:
-          'Fragments Android Wireframe Kit  UX Wire was jusr featured in today\'s\ncrownlistllc.com newsletter via @pixsellz',
-      timeAgo: '1/9/20',
-      comments: 0,
-      reposts: 0,
-      likes: 0,
-      hasLink: true,
-      linkImageUrl: 'https://randomuser.me/api/portraits/lego/2.jpg',
-    ),
-  ];
+  final TweetService _tweetService = TweetService();
+  final AuthService _authService = AuthService();
+  List<Tweet> _tweets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTweets();
+  }
+
+  void _loadTweets() {
+    _tweetService.getTweets().listen((tweets) {
+      setState(() {
+        _tweets = tweets;
+      });
+    });
+  }
 
   void _handleNavigation(NavBarItem item) {
     // Handle navigation based on the selected item
@@ -98,16 +80,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      // Inside the build method of _NotificationsScreenState, update the floatingActionButton:
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
+          final currentUser = await _authService.getCurrentUserData();
+          if (currentUser == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please sign in to tweet')),
+            );
+            return;
+          }
+
           TweetUtils.showTweetComposer(
             context,
-            onTweet: (content, media) {
-              // Handle the new tweet
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
+            onTweet: (content, media) async {
+              final newTweet = Tweet(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                user: currentUser,
+                content: content,
+                timeAgo: '', // Will be set by TweetService
+                timestamp:
+                    DateTime.now(), // Will be overwritten by server timestamp
+                comments: 0,
+                reposts: 0,
+                likes: const [],
+                likedBy: const [],
+                imageUrls: media,
+                retweets: const [],
+                replies: const [],
+                hasMedia: media.isNotEmpty,
+                mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
+              );
+
+              await _tweetService.addTweet(newTweet);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tweet posted successfully!')),
+              );
             },
           );
         },

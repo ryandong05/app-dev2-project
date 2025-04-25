@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import '../utils/tweet_utils.dart';
 import '../widgets/app_navigation_bar.dart';
 import '../widgets/tweet_card.dart';
+import '../models/tweet.dart';
+import '../models/user.dart';
+import '../services/tweet_service.dart';
+import '../services/auth_service.dart';
+import '../services/follow_service.dart';
+import '../screens/follow_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -13,11 +19,64 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TweetService _tweetService = TweetService();
+  final AuthService _authService = AuthService();
+  final FollowService _followService = FollowService();
+  List<Tweet> _tweets = [];
+  User? _currentUser;
+  List<User> _followers = [];
+  List<User> _following = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadUserData();
+    _loadTweets();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await _authService.getCurrentUserData();
+    if (mounted) {
+      setState(() {
+        _currentUser = user;
+      });
+      if (user != null) {
+        _loadFollowersAndFollowing(user.id);
+      }
+    }
+  }
+
+  void _loadFollowersAndFollowing(String userId) {
+    _followService.getFollowers(userId).listen((followers) {
+      if (mounted) {
+        setState(() {
+          _followers = followers;
+        });
+      }
+    });
+
+    _followService.getFollowing(userId).listen((following) {
+      if (mounted) {
+        setState(() {
+          _following = following;
+        });
+      }
+    });
+  }
+
+  void _loadTweets() {
+    _tweetService.getTweets().listen((tweets) {
+      if (mounted) {
+        setState(() {
+          // Filter tweets to show only the current user's posts
+          _tweets =
+              tweets
+                  .where((tweet) => tweet.user.id == _currentUser?.id)
+                  .toList();
+        });
+      }
+    });
   }
 
   @override
@@ -51,6 +110,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (_currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
@@ -72,10 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Stack(
               children: [
                 // Profile title
-                const Center(
+                Center(
                   child: Text(
-                    'Example Profile.',
-                    style: TextStyle(
+                    _currentUser!.name,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -97,15 +160,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     child: CircleAvatar(
                       radius: 40,
+                      backgroundImage:
+                          _currentUser!.profileImageUrl.isNotEmpty
+                              ? NetworkImage(_currentUser!.profileImageUrl)
+                              : null,
                       backgroundColor:
                           theme.brightness == Brightness.dark
                               ? Colors.grey.shade800
                               : Colors.black,
-                      child: Icon(
-                        Icons.person,
-                        size: 50,
-                        color: theme.scaffoldBackgroundColor,
-                      ),
+                      child:
+                          _currentUser!.profileImageUrl.isEmpty
+                              ? Icon(
+                                Icons.person,
+                                size: 50,
+                                color: theme.scaffoldBackgroundColor,
+                              )
+                              : null,
                     ),
                   ),
                 ),
@@ -143,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Profile',
+                  _currentUser!.name,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -151,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
                 Text(
-                  '@profile',
+                  '@${_currentUser!.handle}',
                   style: TextStyle(
                     color: theme.textTheme.bodySmall?.color,
                     fontSize: 14,
@@ -159,7 +229,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'The quick brown fox jumps over the lazy dog.',
+                  'Bio not set',
                   style: TextStyle(
                     fontSize: 16,
                     color: theme.textTheme.bodyLarge?.color,
@@ -171,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const Icon(Icons.link, color: Colors.blue, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      'example.io',
+                      'No website set',
                       style: const TextStyle(color: Colors.blue, fontSize: 14),
                     ),
                     const SizedBox(width: 16),
@@ -182,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Joined September 2018',
+                      'Joined',
                       style: TextStyle(
                         color: theme.textTheme.bodySmall?.color,
                         fontSize: 14,
@@ -193,35 +263,71 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Text(
-                      '217',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    Text(
-                      ' Following',
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 14,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => FollowListScreen(
+                                  userId: _currentUser!.id,
+                                  showFollowers: false,
+                                ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            '${_following.length}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                          Text(
+                            ' Following',
+                            style: TextStyle(
+                              color: theme.textTheme.bodySmall?.color,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Text(
-                      '118',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                    Text(
-                      ' Followers',
-                      style: TextStyle(
-                        color: theme.textTheme.bodySmall?.color,
-                        fontSize: 14,
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => FollowListScreen(
+                                  userId: _currentUser!.id,
+                                  showFollowers: true,
+                                ),
+                          ),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            '${_followers.length}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                          Text(
+                            ' Followers',
+                            style: TextStyle(
+                              color: theme.textTheme.bodySmall?.color,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -250,43 +356,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               controller: _tabController,
               children: [
                 // Posts Tab
-                ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16, top: 8),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.push_pin, size: 16, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            'Pinned Tweet',
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                    TweetCard(
-                      tweet: Tweet(
-                        id: '1',
-                        user: User(
-                          id: '1',
-                          name: 'Pixsellz',
-                          handle: 'pixsellz',
-                          profileImageUrl:
-                              'https://randomuser.me/api/portraits/men/1.jpg',
-                        ),
-                        content: 'The quick brown fox jumps over the lazy dog!',
-                        timeAgo: '7/31/19',
-                        comments: 2,
-                        reposts: 2,
-                        likes: 15,
-                        hashtags: ['prototyping', 'wireframe', 'uiux', 'ux'],
-                        hasMedia: true,
-                        mediaType: MediaType.video,
-                        mediaViews: 109,
-                      ),
-                    ),
-                  ],
+                ListView.separated(
+                  itemCount: _tweets.length,
+                  separatorBuilder:
+                      (context, index) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tweet = _tweets[index];
+                    return TweetCard(tweet: tweet);
+                  },
                 ),
 
                 // Posts & Replies Tab
@@ -302,16 +379,40 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ],
       ),
-      // Inside the build method of _ProfileScreenState, update the floatingActionButton:
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
+          final currentUser = await _authService.getCurrentUserData();
+          if (currentUser == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please sign in to tweet')),
+            );
+            return;
+          }
+
           TweetUtils.showTweetComposer(
             context,
-            onTweet: (content, media) {
-              // Handle the new tweet
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
+            onTweet: (content, media) async {
+              final newTweet = Tweet(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                user: currentUser,
+                content: content,
+                timeAgo: TweetUtils.formatTimeAgo(DateTime.now()),
+                timestamp: DateTime.now(),
+                comments: 0,
+                reposts: 0,
+                likes: const [],
+                likedBy: const [],
+                imageUrls: media,
+                retweets: const [],
+                replies: const [],
+                hasMedia: media.isNotEmpty,
+                mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
+              );
+
+              await _tweetService.addTweet(newTweet);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tweet posted successfully!')),
+              );
             },
           );
         },

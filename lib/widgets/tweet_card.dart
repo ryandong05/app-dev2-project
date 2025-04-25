@@ -1,427 +1,486 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/tweet.dart';
+import '../models/user.dart';
+import '../models/comment.dart';
+import '../services/tweet_service.dart';
+import '../services/auth_service.dart';
+import '../utils/tweet_utils.dart';
+import 'comment_card.dart';
+import 'tweet_composer.dart';
 
-enum MediaType { image, video, none }
-
-class User {
-  final String id;
-  final String name;
-  final String handle;
-  final String profileImageUrl;
-  final bool isVerified;
-
-  User({
-    required this.id,
-    required this.name,
-    required this.handle,
-    required this.profileImageUrl,
-    this.isVerified = false,
-  });
-}
-
-class Tweet {
-  final String id;
-  final User user;
-  final String content;
-  final String timeAgo;
-  final int comments;
-  final int reposts;
-  final int likes;
-  final List<String> likedBy;
-  final String? repostedBy;
-  final bool isThread;
-  final List<String> hashtags;
-  final bool hasMedia;
-  final MediaType mediaType;
-  final int? mediaViews;
-  final bool hasLink;
-  final String? linkTitle;
-  final String? linkDomain;
-  final String? linkImageUrl;
-
-  Tweet({
-    required this.id,
-    required this.user,
-    required this.content,
-    required this.timeAgo,
-    this.comments = 0,
-    this.reposts = 0,
-    this.likes = 0,
-    this.likedBy = const [],
-    this.repostedBy,
-    this.isThread = false,
-    this.hashtags = const [],
-    this.hasMedia = false,
-    this.mediaType = MediaType.none,
-    this.mediaViews,
-    this.hasLink = false,
-    this.linkTitle,
-    this.linkDomain,
-    this.linkImageUrl,
-  });
-}
-
-class TweetCard extends StatelessWidget {
+class TweetCard extends StatefulWidget {
   final Tweet tweet;
+  final TweetService _tweetService = TweetService();
+  final AuthService _authService = AuthService();
 
-  const TweetCard({Key? key, required this.tweet}) : super(key: key);
+  TweetCard({Key? key, required this.tweet}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  State<TweetCard> createState() => _TweetCardState();
+}
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: theme.cardColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Liked by or Reposted by
-          if (tweet.likedBy.isNotEmpty || tweet.repostedBy != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8.0, left: 50),
-              child: Row(
+class _TweetCardState extends State<TweetCard> {
+  final TextEditingController _commentController = TextEditingController();
+  bool _isLiked = false;
+  bool _isRetweeted = false;
+  bool _showComments = false;
+  List<String> _likes = [];
+  List<String> _retweets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _likes = widget.tweet.likes;
+    _retweets = widget.tweet.retweets;
+    _checkLikeStatus();
+    _checkRetweetStatus();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkLikeStatus() async {
+    final currentUser = await widget._authService.getCurrentUserData();
+    if (currentUser != null) {
+      setState(() {
+        _isLiked = _likes.contains(currentUser.id);
+      });
+    }
+  }
+
+  Future<void> _checkRetweetStatus() async {
+    final currentUser = await widget._authService.getCurrentUserData();
+    if (currentUser != null) {
+      setState(() {
+        _isRetweeted = _retweets.contains(currentUser.id);
+      });
+    }
+  }
+
+  Future<void> _handleLike() async {
+    final currentUser = await widget._authService.getCurrentUserData();
+    if (currentUser == null) return;
+
+    await widget._tweetService.likeTweet(widget.tweet.id, currentUser.id);
+    setState(() {
+      _isLiked = !_isLiked;
+      if (_isLiked) {
+        _likes = [..._likes, currentUser.id];
+      } else {
+        _likes = _likes.where((id) => id != currentUser.id).toList();
+      }
+    });
+  }
+
+  Future<void> _handleRetweet() async {
+    final currentUser = await widget._authService.getCurrentUserData();
+    if (currentUser == null) return;
+
+    await widget._tweetService.retweetTweet(widget.tweet.id, currentUser);
+    setState(() {
+      _isRetweeted = !_isRetweeted;
+      if (_isRetweeted) {
+        _retweets = [..._retweets, currentUser.id];
+      } else {
+        _retweets = _retweets.where((id) => id != currentUser.id).toList();
+      }
+    });
+  }
+
+  void _showCommentDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder:
+          (context) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    tweet.repostedBy != null ? Icons.repeat : Icons.favorite,
-                    size: 16,
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    tweet.repostedBy != null
-                        ? '${tweet.repostedBy} Reposted'
-                        : '${tweet.likedBy.join(' and ')} liked',
-                    style: TextStyle(
-                      color: theme.textTheme.bodySmall?.color,
-                      fontSize: 14,
+                  TextField(
+                    controller: _commentController,
+                    decoration: const InputDecoration(
+                      hintText: 'Write your comment...',
+                      border: OutlineInputBorder(),
                     ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (_commentController.text.trim().isEmpty) return;
+
+                      final currentUser =
+                          await widget._authService.getCurrentUserData();
+                      if (currentUser == null) return;
+
+                      final comment = Comment(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        tweetId: widget.tweet.id,
+                        user: currentUser,
+                        content: _commentController.text.trim(),
+                        createdAt: DateTime.now(),
+                      );
+
+                      await widget._tweetService.addComment(comment);
+                      _commentController.clear();
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Post Comment'),
                   ),
                 ],
               ),
             ),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile image
-              CircleAvatar(
-                radius: 24,
-                backgroundImage: NetworkImage(tweet.user.profileImageUrl),
-              ),
-              const SizedBox(width: 12),
-
-              // Tweet content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User info and time
-                    Row(
-                      children: [
-                        Text(
-                          tweet.user.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                        if (tweet.user.isVerified)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 4.0),
-                            child: Icon(
-                              Icons.verified,
-                              color: Colors.blue,
-                              size: 16,
-                            ),
-                          ),
-                        Text(
-                          ' @${tweet.user.handle} · ${tweet.timeAgo}',
-                          style: TextStyle(
-                            color: theme.textTheme.bodySmall?.color,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const Spacer(),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
-                      ],
-                    ),
-
-                    // Tweet text
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Text(
-                        tweet.content,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: theme.textTheme.bodyLarge?.color,
-                        ),
-                      ),
-                    ),
-
-                    // Hashtags
-                    if (tweet.hashtags.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                        child: Wrap(
-                          spacing: 4,
-                          children:
-                              tweet.hashtags.map((tag) {
-                                return Text(
-                                  '#$tag',
-                                  style: const TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 16,
-                                  ),
-                                );
-                              }).toList(),
-                        ),
-                      ),
-
-                    // Media
-                    if (tweet.hasMedia)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                'https://picsum.photos/400/300',
-                                width: double.infinity,
-                                height: 200,
-                                fit: BoxFit.cover,
-                              ),
-                              if (tweet.mediaType == MediaType.video)
-                                Positioned.fill(
-                                  child: Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: const Icon(
-                                        Icons.play_arrow,
-                                        color: Colors.white,
-                                        size: 32,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (tweet.mediaType == MediaType.video &&
-                                  tweet.mediaViews != null)
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '0:11',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Link preview
-                    if (tweet.hasLink)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.dividerColor),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (tweet.linkImageUrl != null)
-                                Image.network(
-                                  tweet.linkImageUrl!,
-                                  width: double.infinity,
-                                  height: 150,
-                                  fit: BoxFit.cover,
-                                ),
-                              Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (tweet.linkTitle != null)
-                                      Text(
-                                        tweet.linkTitle!,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color:
-                                              theme.textTheme.bodyLarge?.color,
-                                        ),
-                                      ),
-                                    if (tweet.linkDomain != null)
-                                      Text(
-                                        tweet.linkDomain!,
-                                        style: TextStyle(
-                                          color:
-                                              theme.textTheme.bodySmall?.color,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                    // Media views
-                    if (tweet.mediaType == MediaType.video &&
-                        tweet.mediaViews != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0, bottom: 8.0),
-                        child: Text(
-                          '${tweet.mediaViews} views',
-                          style: TextStyle(
-                            color: theme.textTheme.bodySmall?.color,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-
-                    // Tweet actions
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Comments
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                color: theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.comments),
-                                style: TextStyle(
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Reposts
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.repeat,
-                                color: theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.reposts),
-                                style: TextStyle(
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Likes
-                          Row(
-                            children: [
-                              Icon(
-                                tweet.likes > 0
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color:
-                                    tweet.likes > 0
-                                        ? Colors.red
-                                        : theme.textTheme.bodySmall?.color,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                formatNumber(tweet.likes),
-                                style: TextStyle(
-                                  color:
-                                      tweet.likes > 0
-                                          ? Colors.red
-                                          : theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Share
-                          Icon(
-                            Icons.share,
-                            color: theme.textTheme.bodySmall?.color,
-                            size: 18,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Show thread
-                    if (tweet.isThread)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundImage: NetworkImage(
-                                tweet.user.profileImageUrl,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Show this thread',
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
           ),
-        ],
-      ),
     );
   }
 
-  String formatNumber(int number) {
-    if (number >= 1000) {
-      double num = number / 1000;
-      return '${num.toStringAsFixed(num.truncateToDouble() == num ? 0 : 1)}K';
-    }
-    return number.toString();
+  void _showEditDialog() {
+    final TextEditingController _editController = TextEditingController(
+      text: widget.tweet.content,
+    );
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Tweet'),
+            content: TextField(
+              controller: _editController,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: 'Edit your tweet...'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_editController.text.trim().isNotEmpty) {
+                    await widget._tweetService.editTweet(
+                      widget.tweet.id,
+                      _editController.text.trim(),
+                      widget.tweet.imageUrls,
+                    );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tweet updated successfully!'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Tweet'),
+            content: const Text('Are you sure you want to delete this tweet?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await widget._tweetService.deleteTweet(widget.tweet.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tweet deleted successfully!'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: theme.cardColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.tweet.isRetweet)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0, left: 50),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.repeat,
+                        size: 16,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${widget.tweet.retweetedBy} Retweeted',
+                        style: TextStyle(
+                          color: theme.textTheme.bodySmall?.color,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Tweet content
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile image
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundImage: NetworkImage(
+                      widget.tweet.user.profileImageUrl,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Tweet content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // User info
+                        Row(
+                          children: [
+                            Text(
+                              widget.tweet.user.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (widget.tweet.user.isVerified)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 4),
+                                child: Icon(
+                                  Icons.verified,
+                                  size: 16,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '@${widget.tweet.user.handle}',
+                              style: TextStyle(
+                                color: theme.textTheme.bodySmall?.color,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '· ${widget.tweet.timeAgo}',
+                              style: TextStyle(
+                                color: theme.textTheme.bodySmall?.color,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (widget.tweet.user.id ==
+                                widget._authService.currentUser?.uid)
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _showEditDialog();
+                                  } else if (value == 'delete') {
+                                    _showDeleteConfirmation();
+                                  }
+                                },
+                                itemBuilder:
+                                    (context) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Edit'),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // Tweet text
+                        Text(
+                          widget.tweet.content,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 12),
+                        // Tweet actions
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildActionButton(
+                              icon: Icons.chat_bubble_outline,
+                              count: widget.tweet.comments,
+                              onTap: () {
+                                setState(() {
+                                  _showComments = !_showComments;
+                                });
+                              },
+                            ),
+                            _buildActionButton(
+                              icon: Icons.repeat,
+                              count: _retweets.length,
+                              onTap: _handleRetweet,
+                              color: _isRetweeted ? Colors.green : null,
+                            ),
+                            StreamBuilder<DocumentSnapshot>(
+                              stream: widget._tweetService.getTweetStream(
+                                widget.tweet.id,
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData) {
+                                  final data =
+                                      snapshot.data!.data()
+                                          as Map<String, dynamic>;
+                                  final likes = List<String>.from(
+                                    data['likes'] ?? [],
+                                  );
+                                  return _buildActionButton(
+                                    icon:
+                                        _isLiked
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                    count: likes.length,
+                                    onTap: _handleLike,
+                                    color: _isLiked ? Colors.red : null,
+                                  );
+                                }
+                                return _buildActionButton(
+                                  icon:
+                                      _isLiked
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                  count: _likes.length,
+                                  onTap: _handleLike,
+                                  color: _isLiked ? Colors.red : null,
+                                );
+                              },
+                            ),
+                            _buildActionButton(icon: Icons.share, onTap: () {}),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        if (_showComments) ...[
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Comments',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              TextButton.icon(
+                onPressed: _showCommentDialog,
+                icon: const Icon(Icons.add_comment),
+                label: const Text('Add Comment'),
+              ),
+            ],
+          ),
+          StreamBuilder<List<Comment>>(
+            stream: widget._tweetService.getComments(widget.tweet.id),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Error loading comments: ${snapshot.error}',
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                );
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final comments = snapshot.data ?? [];
+              if (comments.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No comments yet. Be the first to comment!'),
+                );
+              }
+
+              return Column(
+                children:
+                    comments
+                        .map(
+                          (comment) => CommentCard(
+                            comment: comment,
+                            onDelete:
+                                widget._authService.currentUser?.uid ==
+                                        comment.user.id
+                                    ? () => widget._tweetService.deleteComment(
+                                      comment.id,
+                                      widget.tweet.id,
+                                    )
+                                    : null,
+                          ),
+                        )
+                        .toList(),
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    Color? color,
+    int count = 0,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          if (count > 0) ...[
+            const SizedBox(width: 4),
+            Text(
+              count.toString(),
+              style: TextStyle(color: color, fontSize: 14),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
