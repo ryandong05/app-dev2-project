@@ -480,4 +480,41 @@ class TweetService {
     final retweets = List<String>.from(data['retweets'] ?? []);
     return retweets.contains(userId);
   }
+
+  // Edit a tweet
+  Future<void> editTweet(
+    String tweetId,
+    String newContent,
+    List<String> newImageUrls,
+  ) async {
+    await _firestore.collection(_collection).doc(tweetId).update({
+      'content': newContent,
+      'imageUrls': newImageUrls,
+      'hasMedia': newImageUrls.isNotEmpty,
+      'mediaType':
+          newImageUrls.isNotEmpty
+              ? MediaType.image.index
+              : MediaType.none.index,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Delete a tweet
+  Future<void> deleteTweet(String tweetId) async {
+    // Delete the tweet
+    await _firestore.collection(_collection).doc(tweetId).delete();
+
+    // Delete all comments associated with this tweet
+    final commentsSnapshot =
+        await _firestore
+            .collection(_commentsCollection)
+            .where('tweetId', isEqualTo: tweetId)
+            .get();
+
+    final batch = _firestore.batch();
+    for (var doc in commentsSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
 }

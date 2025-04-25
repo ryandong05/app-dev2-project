@@ -4,34 +4,36 @@ import '../models/user.dart';
 import '../models/comment.dart';
 import '../services/tweet_service.dart';
 import '../services/auth_service.dart';
+import '../utils/tweet_utils.dart';
 import 'comment_card.dart';
+import 'tweet_composer.dart';
 
 class TweetCard extends StatefulWidget {
   final Tweet tweet;
+  final TweetService _tweetService = TweetService();
+  final AuthService _authService = AuthService();
 
-  const TweetCard({Key? key, required this.tweet}) : super(key: key);
+  TweetCard({Key? key, required this.tweet}) : super(key: key);
 
   @override
   State<TweetCard> createState() => _TweetCardState();
 }
 
 class _TweetCardState extends State<TweetCard> {
-  final TweetService _tweetService = TweetService();
-  final AuthService _authService = AuthService();
+  final TextEditingController _commentController = TextEditingController();
   bool _isLiked = false;
   bool _isRetweeted = false;
+  bool _showComments = false;
   List<String> _likes = [];
   List<String> _retweets = [];
-  bool _showComments = false;
-  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _likes = widget.tweet.likes;
     _retweets = widget.tweet.retweets;
-    _checkIfLiked();
-    _checkIfRetweeted();
+    _checkLikeStatus();
+    _checkRetweetStatus();
   }
 
   @override
@@ -40,52 +42,44 @@ class _TweetCardState extends State<TweetCard> {
     super.dispose();
   }
 
-  Future<void> _checkIfLiked() async {
-    final currentUser = _authService.currentUser;
+  Future<void> _checkLikeStatus() async {
+    final currentUser = await widget._authService.getCurrentUserData();
     if (currentUser != null) {
-      final hasLiked = await _tweetService.hasUserLikedTweet(
-        widget.tweet.id,
-        currentUser.uid,
-      );
       setState(() {
-        _isLiked = hasLiked;
+        _isLiked = _likes.contains(currentUser.id);
       });
     }
   }
 
-  Future<void> _checkIfRetweeted() async {
-    final currentUser = _authService.currentUser;
+  Future<void> _checkRetweetStatus() async {
+    final currentUser = await widget._authService.getCurrentUserData();
     if (currentUser != null) {
-      final hasRetweeted = await _tweetService.hasUserRetweeted(
-        widget.tweet.id,
-        currentUser.uid,
-      );
       setState(() {
-        _isRetweeted = hasRetweeted;
+        _isRetweeted = _retweets.contains(currentUser.id);
       });
     }
   }
 
   Future<void> _handleLike() async {
-    final currentUser = _authService.currentUser;
+    final currentUser = await widget._authService.getCurrentUserData();
     if (currentUser == null) return;
 
-    await _tweetService.likeTweet(widget.tweet.id, currentUser.uid);
+    await widget._tweetService.likeTweet(widget.tweet.id, currentUser.id);
     setState(() {
       _isLiked = !_isLiked;
       if (_isLiked) {
-        _likes = [..._likes, currentUser.uid];
+        _likes = [..._likes, currentUser.id];
       } else {
-        _likes = _likes.where((id) => id != currentUser.uid).toList();
+        _likes = _likes.where((id) => id != currentUser.id).toList();
       }
     });
   }
 
   Future<void> _handleRetweet() async {
-    final currentUser = await _authService.getCurrentUserData();
+    final currentUser = await widget._authService.getCurrentUserData();
     if (currentUser == null) return;
 
-    await _tweetService.retweetTweet(widget.tweet.id, currentUser);
+    await widget._tweetService.retweetTweet(widget.tweet.id, currentUser);
     setState(() {
       _isRetweeted = !_isRetweeted;
       if (_isRetweeted) {
@@ -124,7 +118,7 @@ class _TweetCardState extends State<TweetCard> {
                       if (_commentController.text.trim().isEmpty) return;
 
                       final currentUser =
-                          await _authService.getCurrentUserData();
+                          await widget._authService.getCurrentUserData();
                       if (currentUser == null) return;
 
                       final comment = Comment(
@@ -135,7 +129,7 @@ class _TweetCardState extends State<TweetCard> {
                         createdAt: DateTime.now(),
                       );
 
-                      await _tweetService.addComment(comment);
+                      await widget._tweetService.addComment(comment);
                       _commentController.clear();
                       Navigator.pop(context);
                     },
@@ -148,10 +142,84 @@ class _TweetCardState extends State<TweetCard> {
     );
   }
 
+  void _showEditDialog() {
+    final TextEditingController _editController = TextEditingController(
+      text: widget.tweet.content,
+    );
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Edit Tweet'),
+            content: TextField(
+              controller: _editController,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: 'Edit your tweet...'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_editController.text.trim().isNotEmpty) {
+                    await widget._tweetService.editTweet(
+                      widget.tweet.id,
+                      _editController.text.trim(),
+                      widget.tweet.imageUrls,
+                    );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tweet updated successfully!'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Tweet'),
+            content: const Text('Are you sure you want to delete this tweet?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await widget._tweetService.deleteTweet(widget.tweet.id);
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tweet deleted successfully!'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Column(
       children: [
         Container(
@@ -231,6 +299,29 @@ class _TweetCardState extends State<TweetCard> {
                                 color: theme.textTheme.bodySmall?.color,
                               ),
                             ),
+                            const Spacer(),
+                            if (widget.tweet.user.id ==
+                                widget._authService.currentUser?.uid)
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    _showEditDialog();
+                                  } else if (value == 'delete') {
+                                    _showDeleteConfirmation();
+                                  }
+                                },
+                                itemBuilder:
+                                    (context) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Edit'),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                              ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -246,16 +337,12 @@ class _TweetCardState extends State<TweetCard> {
                           children: [
                             _buildActionButton(
                               icon: Icons.chat_bubble_outline,
-                              count: widget.tweet.replies,
-                              onTap: () {
-                                setState(() {
-                                  _showComments = !_showComments;
-                                });
-                              },
+                              count: widget.tweet.comments,
+                              onTap: _showCommentDialog,
                             ),
                             _buildActionButton(
                               icon: Icons.repeat,
-                              count: _retweets,
+                              count: _retweets.length,
                               onTap: _handleRetweet,
                               color: _isRetweeted ? Colors.green : null,
                             ),
@@ -264,7 +351,7 @@ class _TweetCardState extends State<TweetCard> {
                                   _isLiked
                                       ? Icons.favorite
                                       : Icons.favorite_border,
-                              count: _likes,
+                              count: _likes.length,
                               onTap: _handleLike,
                               color: _isLiked ? Colors.red : null,
                             ),
@@ -296,7 +383,7 @@ class _TweetCardState extends State<TweetCard> {
             ],
           ),
           StreamBuilder<List<Comment>>(
-            stream: _tweetService.getComments(widget.tweet.id),
+            stream: widget._tweetService.getComments(widget.tweet.id),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Padding(
@@ -327,8 +414,9 @@ class _TweetCardState extends State<TweetCard> {
                           (comment) => CommentCard(
                             comment: comment,
                             onDelete:
-                                _authService.currentUser?.uid == comment.user.id
-                                    ? () => _tweetService.deleteComment(
+                                widget._authService.currentUser?.uid ==
+                                        comment.user.id
+                                    ? () => widget._tweetService.deleteComment(
                                       comment.id,
                                       widget.tweet.id,
                                     )
@@ -346,18 +434,21 @@ class _TweetCardState extends State<TweetCard> {
 
   Widget _buildActionButton({
     required IconData icon,
-    List<String> count = const [],
     required VoidCallback onTap,
     Color? color,
+    int count = 0,
   }) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, size: 20, color: color),
-          if (count.isNotEmpty) ...[
+          Icon(icon, color: color, size: 20),
+          if (count > 0) ...[
             const SizedBox(width: 4),
-            Text(count.length.toString(), style: const TextStyle(fontSize: 14)),
+            Text(
+              count.toString(),
+              style: TextStyle(color: color, fontSize: 14),
+            ),
           ],
         ],
       ),

@@ -4,6 +4,8 @@ class User {
   final String handle;
   final String profileImageUrl;
   final bool isVerified;
+  final List<String> following;
+  final List<String> followers;
 
   User({
     required this.id,
@@ -11,6 +13,8 @@ class User {
     required this.handle,
     required this.profileImageUrl,
     this.isVerified = false,
+    this.following = const [],
+    this.followers = const [],
   });
 
   factory User.fromMap(Map<String, dynamic> map) {
@@ -20,6 +24,8 @@ class User {
       handle: map['handle'] ?? '',
       profileImageUrl: map['profileImageUrl'] ?? '',
       isVerified: map['isVerified'] ?? false,
+      following: List<String>.from(map['following'] ?? []),
+      followers: List<String>.from(map['followers'] ?? []),
     );
   }
 
@@ -30,6 +36,8 @@ class User {
       'handle': handle,
       'profileImageUrl': profileImageUrl,
       'isVerified': isVerified,
+      'following': following,
+      'followers': followers,
     };
   }
 }
