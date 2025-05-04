@@ -10,10 +10,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'models/settings_model.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Awesome Notifications
+  await NotificationService()._initializeNotifications();
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => SettingsModel(),
