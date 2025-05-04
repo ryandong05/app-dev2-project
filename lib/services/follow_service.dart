@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart';
-import 'notification_service.dart';
+import '../services/notification_service.dart';
 
 class FollowService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -8,55 +8,62 @@ class FollowService {
   final String _usersCollection = 'users';
 
   // Follow a user
-  Future<void> followUser(String currentUserId, String targetUserId) async {
-    final batch = _firestore.batch();
+  Future<void> followUser(String followerId, String followedId) async {
+    // Get user data
+    final followerDoc = await _firestore.collection('users').doc(followerId).get();
+    final followedDoc = await _firestore.collection('users').doc(followedId).get();
 
-    // Add target user to current user's following list
-    final currentUserRef = _firestore
-        .collection(_usersCollection)
-        .doc(currentUserId);
-    batch.update(currentUserRef, {
-      'following': FieldValue.arrayUnion([targetUserId]),
-    });
+    if (!followerDoc.exists || !followedDoc.exists) return;
 
-    // Add current user to target user's followers list
-    final targetUserRef = _firestore
-        .collection(_usersCollection)
-        .doc(targetUserId);
-    batch.update(targetUserRef, {
-      'followers': FieldValue.arrayUnion([currentUserId]),
-    });
+    final follower = User.fromMap(followerDoc.data()!);
+    final followed = User.fromMap(followedDoc.data()!);
 
-    await batch.commit();
+    // Update follower's following list
+    final followerFollowing = List<String>.from(follower.following);
+    if (!followerFollowing.contains(followedId)) {
+      followerFollowing.add(followedId);
+      await _firestore.collection('users').doc(followerId).update({
+        'following': followerFollowing,
+      });
+    }
 
-    // Send follow notification
-    await _notificationService.sendFollowNotification(
-      currentUserId,
-      targetUserId,
-    );
+    // Update followed's followers list
+    final followedFollowers = List<String>.from(followed.followers);
+    if (!followedFollowers.contains(followerId)) {
+      followedFollowers.add(followerId);
+      await _firestore.collection('users').doc(followedId).update({
+        'followers': followedFollowers,
+      });
+
+      // Create follow notification
+      await _notificationService.createFollowNotification(follower, followedId);
+    }
   }
 
   // Unfollow a user
-  Future<void> unfollowUser(String currentUserId, String targetUserId) async {
-    final batch = _firestore.batch();
+  Future<void> unfollowUser(String followerId, String followedId) async {
+    // Get user data
+    final followerDoc = await _firestore.collection('users').doc(followerId).get();
+    final followedDoc = await _firestore.collection('users').doc(followedId).get();
 
-    // Remove target user from current user's following list
-    final currentUserRef = _firestore
-        .collection(_usersCollection)
-        .doc(currentUserId);
-    batch.update(currentUserRef, {
-      'following': FieldValue.arrayRemove([targetUserId]),
+    if (!followerDoc.exists || !followedDoc.exists) return;
+
+    final follower = User.fromMap(followerDoc.data()!);
+    final followed = User.fromMap(followedDoc.data()!);
+
+    // Update follower's following list
+    final followerFollowing = List<String>.from(follower.following);
+    followerFollowing.remove(followedId);
+    await _firestore.collection('users').doc(followerId).update({
+      'following': followerFollowing,
     });
 
-    // Remove current user from target user's followers list
-    final targetUserRef = _firestore
-        .collection(_usersCollection)
-        .doc(targetUserId);
-    batch.update(targetUserRef, {
-      'followers': FieldValue.arrayRemove([currentUserId]),
+    // Update followed's followers list
+    final followedFollowers = List<String>.from(followed.followers);
+    followedFollowers.remove(followerId);
+    await _firestore.collection('users').doc(followedId).update({
+      'followers': followedFollowers,
     });
-
-    await batch.commit();
   }
 
   // Check if current user is following target user
