@@ -3,16 +3,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/tweet.dart';
 import '../models/user.dart';
 import '../models/comment.dart';
+import '../models/report.dart';
 import '../services/tweet_service.dart';
 import '../services/auth_service.dart';
+import '../services/report_service.dart';
 import '../utils/tweet_utils.dart';
 import 'comment_card.dart';
 import 'tweet_composer.dart';
+import 'report_dialog.dart';
 
 class TweetCard extends StatefulWidget {
   final Tweet tweet;
   final TweetService _tweetService = TweetService();
   final AuthService _authService = AuthService();
+  final ReportService _reportService = ReportService();
 
   TweetCard({Key? key, required this.tweet}) : super(key: key);
 
@@ -218,6 +222,39 @@ class _TweetCardState extends State<TweetCard> {
     );
   }
 
+  void _showReportDialog() async {
+    final currentUser = await widget._authService.getCurrentUserData();
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to report')),
+      );
+      return;
+    }
+
+    // Check if user has already reported this tweet
+    final hasReported = await widget._reportService.hasUserReported(
+      currentUser.id,
+      widget.tweet.id,
+      ReportType.post,
+    );
+
+    if (hasReported) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You have already reported this post')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => ReportDialog(
+        reportedId: widget.tweet.id,
+        type: ReportType.post,
+        reportedName: widget.tweet.user.name,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -322,6 +359,20 @@ class _TweetCardState extends State<TweetCard> {
                                         child: Text('Delete'),
                                       ),
                                     ],
+                              ),
+                            if (widget.tweet.user.id != widget._authService.currentUser?.uid)
+                              PopupMenuButton<String>(
+                                onSelected: (value) {
+                                  if (value == 'report') {
+                                    _showReportDialog();
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'report',
+                                    child: Text('Report'),
+                                  ),
+                                ],
                               ),
                           ],
                         ),
