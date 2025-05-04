@@ -8,6 +8,9 @@ import '../services/tweet_service.dart';
 import '../services/auth_service.dart';
 import '../services/follow_service.dart';
 import '../screens/follow_list_screen.dart';
+import '../models/report.dart';
+import '../services/report_service.dart';
+import '../widgets/report_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -22,10 +25,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   final TweetService _tweetService = TweetService();
   final AuthService _authService = AuthService();
   final FollowService _followService = FollowService();
+  final ReportService _reportService = ReportService();
   List<Tweet> _tweets = [];
   User? _currentUser;
   List<User> _followers = [];
   List<User> _following = [];
+  String? _currentUserId;
 
   @override
   void initState() {
@@ -40,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (mounted) {
       setState(() {
         _currentUser = user;
+        _currentUserId = user?.id;
       });
       if (user != null) {
         _loadFollowersAndFollowing(user.id);
@@ -79,10 +85,54 @@ class _ProfileScreenState extends State<ProfileScreen>
     });
   }
 
+  void _showReportDialog() async {
+    final currentUser = await _authService.getCurrentUserData();
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to report')),
+      );
+      return;
+    }
+
+    if (currentUser.id == _currentUser!.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You cannot report yourself')),
+      );
+      return;
+    }
+
+    // Check if user has already reported this profile
+    final hasReported = await _reportService.hasUserReported(
+      currentUser.id,
+      _currentUser!.id,
+      ReportType.user,
+    );
+
+    if (hasReported) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You have already reported this user')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => ReportDialog(
+        reportedId: _currentUser!.id,
+        type: ReportType.user,
+        reportedName: _currentUser!.name,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.month}/${date.year}';
   }
 
   void _handleNavigation(NavBarItem item) {
@@ -187,22 +237,46 @@ class _ProfileScreenState extends State<ProfileScreen>
           Container(
             padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
             alignment: Alignment.centerRight,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (_currentUserId != null && _currentUserId != _currentUser!.id)
+                  OutlinedButton(
+                    onPressed: _showReportDialog,
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      side: BorderSide(color: theme.dividerColor),
+                      foregroundColor: theme.textTheme.bodyLarge?.color,
+                    ),
+                    child: Text(
+                      'Report',
+                      style: TextStyle(
+                        color: theme.textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    side: BorderSide(color: theme.dividerColor),
+                    foregroundColor: theme.textTheme.bodyLarge?.color,
+                  ),
+                  child: Text(
+                    'Edit profile',
+                    style: TextStyle(
+                      color: theme.textTheme.bodyLarge?.color,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                side: BorderSide(color: theme.dividerColor),
-                foregroundColor: theme.textTheme.bodyLarge?.color,
-              ),
-              child: Text(
-                'Edit profile',
-                style: TextStyle(
-                  color: theme.textTheme.bodyLarge?.color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              ],
             ),
           ),
 
@@ -212,20 +286,54 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  _currentUser!.name,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
-                Text(
-                  '@${_currentUser!.handle}',
-                  style: TextStyle(
-                    color: theme.textTheme.bodySmall?.color,
-                    fontSize: 14,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentUser!.name,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                        Text(
+                          '@${_currentUser!.handle}',
+                          style: TextStyle(
+                            color: theme.textTheme.bodySmall?.color,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_currentUserId != null && _currentUserId != _currentUser!.id)
+                      FutureBuilder<bool>(
+                        future: _followService.isFollowing(_currentUserId!, _currentUser!.id),
+                        builder: (context, snapshot) {
+                          final isFollowing = snapshot.data ?? false;
+                          return ElevatedButton(
+                            onPressed: () async {
+                              if (isFollowing) {
+                                await _followService.unfollowUser(_currentUserId!, _currentUser!.id);
+                              } else {
+                                await _followService.followUser(_currentUserId!, _currentUser!.id);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isFollowing ? Colors.grey : Colors.blue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Text(isFollowing ? 'Following' : 'Follow'),
+                          );
+                        },
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -252,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Joined',
+                      'Joined ${_formatDate(_currentUser!.createdAt)}',
                       style: TextStyle(
                         color: theme.textTheme.bodySmall?.color,
                         fontSize: 14,
@@ -260,7 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     GestureDetector(
@@ -268,29 +376,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => FollowListScreen(
-                                  userId: _currentUser!.id,
-                                  showFollowers: false,
-                                ),
+                            builder: (context) => FollowListScreen(
+                              userId: _currentUser!.id,
+                              showFollowers: true,
+                            ),
                           ),
                         );
                       },
                       child: Row(
                         children: [
                           Text(
-                            '${_following.length}',
+                            '${_followers.length}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
                               color: theme.textTheme.bodyLarge?.color,
                             ),
                           ),
+                          const SizedBox(width: 4),
                           Text(
-                            ' Following',
+                            'Followers',
                             style: TextStyle(
                               color: theme.textTheme.bodySmall?.color,
-                              fontSize: 14,
                             ),
                           ),
                         ],
@@ -302,29 +408,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder:
-                                (context) => FollowListScreen(
-                                  userId: _currentUser!.id,
-                                  showFollowers: true,
-                                ),
+                            builder: (context) => FollowListScreen(
+                              userId: _currentUser!.id,
+                              showFollowers: false,
+                            ),
                           ),
                         );
                       },
                       child: Row(
                         children: [
                           Text(
-                            '${_followers.length}',
+                            '${_following.length}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
                               color: theme.textTheme.bodyLarge?.color,
                             ),
                           ),
+                          const SizedBox(width: 4),
                           Text(
-                            ' Followers',
+                            'Following',
                             style: TextStyle(
                               color: theme.textTheme.bodySmall?.color,
-                              fontSize: 14,
                             ),
                           ),
                         ],
