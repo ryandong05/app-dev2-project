@@ -80,4 +80,107 @@ class ReportService {
 
     return snapshot.docs.isNotEmpty;
   }
+
+  // Get all post reports
+  Stream<List<PostReport>> getPostReports() {
+    return _firestore
+        .collection('reports')
+        .doc('posts')
+        .collection('reports')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return PostReport.fromMap(data);
+      }).toList();
+    });
+  }
+
+  // Get all user reports
+  Stream<List<UserReport>> getUserReports() {
+    return _firestore
+        .collection('reports')
+        .doc('users')
+        .collection('reports')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return UserReport.fromMap(data);
+      }).toList();
+    });
+  }
+
+  // Dismiss post report
+  Future<void> dismissPostReport(String reportId) async {
+    await _firestore
+        .collection('reports')
+        .doc('posts')
+        .collection('reports')
+        .doc(reportId)
+        .delete();
+  }
+
+  // Dismiss user report
+  Future<void> dismissUserReport(String reportId) async {
+    await _firestore
+        .collection('reports')
+        .doc('users')
+        .collection('reports')
+        .doc(reportId)
+        .delete();
+  }
+
+  // Delete reported post
+  Future<void> deleteReportedPost(String postId) async {
+    // First delete the post
+    await _firestore.collection('posts').doc(postId).delete();
+    
+    // Then delete all reports for this post
+    final reportsSnapshot = await _firestore
+        .collection('reports')
+        .doc('posts')
+        .collection('reports')
+        .where('postId', isEqualTo: postId)
+        .get();
+
+    for (var doc in reportsSnapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  // Ban reported user
+  Future<void> banUser(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'isBanned': true,
+      'bannedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Delete all reports for this user
+    final postReportsSnapshot = await _firestore
+        .collection('reports')
+        .doc('posts')
+        .collection('reports')
+        .where('reportedUserId', isEqualTo: userId)
+        .get();
+
+    final userReportsSnapshot = await _firestore
+        .collection('reports')
+        .doc('users')
+        .collection('reports')
+        .where('reportedUserId', isEqualTo: userId)
+        .get();
+
+    for (var doc in postReportsSnapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    for (var doc in userReportsSnapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
 } 

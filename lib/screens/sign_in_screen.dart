@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:y/services/auth_service.dart';
 import 'home_screen.dart';
+import 'admin_sign_in_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -206,6 +207,26 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Admin sign in link
+            Align(
+              alignment: Alignment.bottomRight,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AdminSignInScreen()),
+                  );
+                },
+                child: Text(
+                  'Admin Sign In',
+                  style: TextStyle(
+                    color: theme.primaryColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -170,4 +170,37 @@ class AuthService {
         return 'An error occurred. Please try again.';
     }
   }
+
+  // Check if user is admin
+  Future<bool> isAdmin(String uid) async {
+    final userDoc = await _firestore.collection('admins').doc(uid).get();
+    return userDoc.exists;
+  }
+
+  // Admin sign in with 2FA
+  Future<UserCredential> adminSignInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      // First verify if the user is an admin
+      final userCredential = await signInWithEmailAndPassword(email, password);
+      final isUserAdmin = await isAdmin(userCredential.user!.uid);
+      
+      if (!isUserAdmin) {
+        await signOut();
+        throw 'Access denied. Not an admin user.';
+      }
+
+      // Enable 2FA if not already enabled
+      if (!userCredential.user!.multiFactor.enrolledFactors.isNotEmpty) {
+        // TODO: Implement 2FA enrollment flow
+        throw '2FA not set up. Please contact system administrator.';
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
 }
