@@ -18,7 +18,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize Awesome Notifications
-  await NotificationService()._initializeNotifications();
+  await NotificationService().initializeNotifications();
 
   runApp(
     ChangeNotifierProvider(

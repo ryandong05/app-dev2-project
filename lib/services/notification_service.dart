@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
-import '../models/notification.dart';
+import 'package:flutter/material.dart';
+import '../models/notification.dart' as app_notification;
 import '../models/user.dart';
 
 class NotificationService {
@@ -8,13 +9,14 @@ class NotificationService {
   final String _collection = 'notifications';
   static const String _channelKey = 'basic_channel';
   static const String _channelName = 'Basic Notifications';
-  static const String _channelDescription = 'Notification channel for social interactions';
+  static const String _channelDescription =
+      'Notification channel for social interactions';
 
   NotificationService() {
-    _initializeNotifications();
+    initializeNotifications();
   }
 
-  Future<void> _initializeNotifications() async {
+  Future<void> initializeNotifications() async {
     await AwesomeNotifications().initialize(
       null, // Use default icon
       [
@@ -37,9 +39,13 @@ class NotificationService {
   }
 
   // Create a new notification
-  Future<void> createNotification(Notification notification) async {
+  Future<void> createNotification(
+      app_notification.Notification notification) async {
     // Store in Firestore
-    await _firestore.collection(_collection).doc(notification.id).set(notification.toMap());
+    await _firestore
+        .collection(_collection)
+        .doc(notification.id)
+        .set(notification.toMap());
 
     // Send push notification
     await AwesomeNotifications().createNotification(
@@ -53,33 +59,34 @@ class NotificationService {
     );
   }
 
-  String _getNotificationTitle(Notification notification) {
+  String _getNotificationTitle(app_notification.Notification notification) {
     switch (notification.type) {
-      case NotificationType.like:
+      case app_notification.NotificationType.like:
         return 'New Like';
-      case NotificationType.retweet:
+      case app_notification.NotificationType.retweet:
         return 'New Retweet';
-      case NotificationType.follow:
+      case app_notification.NotificationType.follow:
         return 'New Follower';
-      case NotificationType.mention:
+      case app_notification.NotificationType.mention:
         return 'Mention';
-      case NotificationType.reply:
+      case app_notification.NotificationType.reply:
         return 'New Reply';
     }
   }
 
   // Get all notifications for a user
-  Stream<List<Notification>> getUserNotifications(String userId) {
+  Stream<List<app_notification.Notification>> getUserNotifications(
+      String userId) {
     return _firestore
         .collection(_collection)
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => Notification.fromFirestore(doc))
-              .toList();
-        });
+      return snapshot.docs
+          .map((doc) => app_notification.Notification.fromFirestore(doc))
+          .toList();
+    });
   }
 
   // Mark a notification as read
@@ -106,12 +113,13 @@ class NotificationService {
   }
 
   // Create a like notification
-  Future<void> createLikeNotification(User fromUser, String tweetId, String tweetContent, String userId) async {
-    final notification = Notification(
+  Future<void> createLikeNotification(
+      User fromUser, String tweetId, String tweetContent, String userId) async {
+    final notification = app_notification.Notification(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
       fromUser: fromUser,
-      type: NotificationType.like,
+      type: app_notification.NotificationType.like,
       tweetId: tweetId,
       tweetContent: tweetContent,
       createdAt: DateTime.now(),
@@ -121,12 +129,13 @@ class NotificationService {
   }
 
   // Create a retweet notification
-  Future<void> createRetweetNotification(User fromUser, String tweetId, String tweetContent, String userId) async {
-    final notification = Notification(
+  Future<void> createRetweetNotification(
+      User fromUser, String tweetId, String tweetContent, String userId) async {
+    final notification = app_notification.Notification(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
       fromUser: fromUser,
-      type: NotificationType.retweet,
+      type: app_notification.NotificationType.retweet,
       tweetId: tweetId,
       tweetContent: tweetContent,
       createdAt: DateTime.now(),
@@ -137,11 +146,11 @@ class NotificationService {
 
   // Create a follow notification
   Future<void> createFollowNotification(User fromUser, String userId) async {
-    final notification = Notification(
+    final notification = app_notification.Notification(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
       fromUser: fromUser,
-      type: NotificationType.follow,
+      type: app_notification.NotificationType.follow,
       createdAt: DateTime.now(),
     );
 
@@ -149,12 +158,13 @@ class NotificationService {
   }
 
   // Create a reply notification
-  Future<void> createReplyNotification(User fromUser, String tweetId, String tweetContent, String userId) async {
-    final notification = Notification(
+  Future<void> createReplyNotification(
+      User fromUser, String tweetId, String tweetContent, String userId) async {
+    final notification = app_notification.Notification(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
       fromUser: fromUser,
-      type: NotificationType.reply,
+      type: app_notification.NotificationType.reply,
       tweetId: tweetId,
       tweetContent: tweetContent,
       createdAt: DateTime.now(),
@@ -164,12 +174,13 @@ class NotificationService {
   }
 
   // Create a mention notification
-  Future<void> createMentionNotification(User fromUser, String tweetId, String tweetContent, String userId) async {
-    final notification = Notification(
+  Future<void> createMentionNotification(
+      User fromUser, String tweetId, String tweetContent, String userId) async {
+    final notification = app_notification.Notification(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       userId: userId,
       fromUser: fromUser,
-      type: NotificationType.mention,
+      type: app_notification.NotificationType.mention,
       tweetId: tweetId,
       tweetContent: tweetContent,
       createdAt: DateTime.now(),

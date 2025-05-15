@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:y/services/auth_service.dart';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
 import 'admin_sign_in_screen.dart';
 
@@ -184,14 +184,12 @@ class _SignInScreenState extends State<SignInScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                  foregroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -200,10 +198,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                child:
-                    _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Submit'),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Submit'),
               ),
             ),
             const SizedBox(height: 24),
@@ -215,7 +212,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AdminSignInScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const AdminSignInScreen()),
                   );
                 },
                 child: Text(

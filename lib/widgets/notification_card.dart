@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
-import '../models/notification.dart';
+import '../models/notification.dart' as app_notification;
 import '../services/notification_service.dart';
 
 class NotificationCard extends StatelessWidget {
-  final Notification notification;
+  final app_notification.Notification notification;
   final NotificationService _notificationService = NotificationService();
 
   NotificationCard({Key? key, required this.notification}) : super(key: key);
 
   IconData _getNotificationIcon() {
     switch (notification.type) {
-      case NotificationType.like:
+      case app_notification.NotificationType.like:
         return Icons.favorite;
-      case NotificationType.retweet:
+      case app_notification.NotificationType.retweet:
         return Icons.repeat;
-      case NotificationType.follow:
+      case app_notification.NotificationType.follow:
         return Icons.person_add;
-      case NotificationType.mention:
+      case app_notification.NotificationType.mention:
         return Icons.alternate_email;
-      case NotificationType.reply:
+      case app_notification.NotificationType.reply:
         return Icons.reply;
     }
   }
 
   Color _getNotificationColor() {
     switch (notification.type) {
-      case NotificationType.like:
+      case app_notification.NotificationType.like:
         return Colors.red;
-      case NotificationType.retweet:
+      case app_notification.NotificationType.retweet:
         return Colors.green;
-      case NotificationType.follow:
+      case app_notification.NotificationType.follow:
         return Colors.blue;
-      case NotificationType.mention:
+      case app_notification.NotificationType.mention:
         return Colors.orange;
-      case NotificationType.reply:
+      case app_notification.NotificationType.reply:
         return Colors.blue;
     }
   }
@@ -140,4 +140,4 @@ class NotificationCard extends StatelessWidget {
       ),
     );
   }
-} 
+}

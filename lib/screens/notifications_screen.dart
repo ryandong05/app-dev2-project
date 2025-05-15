@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/notification.dart';
+import '../models/notification.dart' as app_notification;
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/app_navigation_bar.dart';
 import 'home_screen.dart';
@@ -17,12 +18,14 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
-  late Stream<List<Notification>> _notificationsStream;
+  final AuthService _authService = AuthService();
+  late Stream<List<app_notification.Notification>> _notificationsStream;
 
   @override
   void initState() {
     super.initState();
-    _notificationsStream = _notificationService.getUserNotifications();
+    _notificationsStream = _notificationService
+        .getUserNotifications(_authService.currentUser?.uid ?? '');
   }
 
   void _handleNavigation(NavBarItem item) {
@@ -75,7 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         children: [
           // Notifications content
           Expanded(
-            child: StreamBuilder<List<Notification>>(
+            child: StreamBuilder<List<app_notification.Notification>>(
               stream: _notificationsStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

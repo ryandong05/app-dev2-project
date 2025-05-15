@@ -13,7 +13,8 @@ import '../services/report_service.dart';
 import '../widgets/report_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  final String? userId;
+  const ProfileScreen({Key? key, this.userId}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -41,7 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _loadUserData() async {
-    final user = await _authService.getCurrentUserData();
+    final user = widget.userId != null
+        ? await _authService.getUserData(widget.userId!)
+        : await _authService.getCurrentUserData();
     if (mounted) {
       setState(() {
         _currentUser = user;
@@ -76,10 +79,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (mounted) {
         setState(() {
           // Filter tweets to show only the current user's posts
-          _tweets =
-              tweets
-                  .where((tweet) => tweet.user.id == _currentUser?.id)
-                  .toList();
+          _tweets = tweets
+              .where((tweet) => tweet.user.id == _currentUser?.id)
+              .toList();
         });
       }
     });
@@ -178,10 +180,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Profile Header
           Container(
             height: 150,
-            color:
-                theme.brightness == Brightness.dark
-                    ? Colors.grey.shade900
-                    : Colors.black,
+            color: theme.brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.black,
             child: Stack(
               children: [
                 // Profile title
@@ -210,22 +211,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     child: CircleAvatar(
                       radius: 40,
-                      backgroundImage:
-                          _currentUser!.profileImageUrl.isNotEmpty
-                              ? NetworkImage(_currentUser!.profileImageUrl)
-                              : null,
-                      backgroundColor:
-                          theme.brightness == Brightness.dark
-                              ? Colors.grey.shade800
-                              : Colors.black,
-                      child:
-                          _currentUser!.profileImageUrl.isEmpty
-                              ? Icon(
-                                Icons.person,
-                                size: 50,
-                                color: theme.scaffoldBackgroundColor,
-                              )
-                              : null,
+                      backgroundImage: _currentUser!.profileImageUrl.isNotEmpty
+                          ? NetworkImage(_currentUser!.profileImageUrl)
+                          : null,
+                      backgroundColor: theme.brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.black,
+                      child: _currentUser!.profileImageUrl.isEmpty
+                          ? Icon(
+                              Icons.person,
+                              size: 50,
+                              color: theme.scaffoldBackgroundColor,
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -240,7 +238,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (_currentUserId != null && _currentUserId != _currentUser!.id)
+                if (_currentUserId != null &&
+                    _currentUserId != _currentUser!.id)
                   OutlinedButton(
                     onPressed: _showReportDialog,
                     style: OutlinedButton.styleFrom(
@@ -309,21 +308,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ],
                     ),
-                    if (_currentUserId != null && _currentUserId != _currentUser!.id)
+                    if (_currentUserId != null &&
+                        _currentUserId != _currentUser!.id)
                       FutureBuilder<bool>(
-                        future: _followService.isFollowing(_currentUserId!, _currentUser!.id),
+                        future: _followService.isFollowing(
+                            _currentUserId!, _currentUser!.id),
                         builder: (context, snapshot) {
                           final isFollowing = snapshot.data ?? false;
                           return ElevatedButton(
                             onPressed: () async {
                               if (isFollowing) {
-                                await _followService.unfollowUser(_currentUserId!, _currentUser!.id);
+                                await _followService.unfollowUser(
+                                    _currentUserId!, _currentUser!.id);
                               } else {
-                                await _followService.followUser(_currentUserId!, _currentUser!.id);
+                                await _followService.followUser(
+                                    _currentUserId!, _currentUser!.id);
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isFollowing ? Colors.grey : Colors.blue,
+                              backgroundColor:
+                                  isFollowing ? Colors.grey : Colors.blue,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -462,8 +466,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 // Posts Tab
                 ListView.separated(
                   itemCount: _tweets.length,
-                  separatorBuilder:
-                      (context, index) => const Divider(height: 1),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final tweet = _tweets[index];
                     return TweetCard(tweet: tweet);

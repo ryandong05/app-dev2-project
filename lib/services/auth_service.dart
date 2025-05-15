@@ -22,8 +22,7 @@ class AuthService {
       id: user.uid,
       name: data['name'] ?? user.displayName ?? 'Anonymous',
       handle: data['handle'] ?? user.email?.split('@')[0] ?? 'anonymous',
-      profileImageUrl:
-          data['profileImageUrl'] ??
+      profileImageUrl: data['profileImageUrl'] ??
           'https://ui-avatars.com/api/?name=${Uri.encodeComponent(data['name'] ?? user.displayName ?? 'Anonymous')}&background=random',
       isVerified: data['isVerified'] ?? false,
     );
@@ -68,15 +67,14 @@ class AuthService {
     if (user == null) throw 'No user logged in';
 
     // Check if username is already taken by a different user
-    final querySnapshot =
-        await _firestore
-            .collection('users')
-            .where('name', isEqualTo: newUsername)
-            .where(
-              FieldPath.documentId,
-              isNotEqualTo: user.uid,
-            ) // Exclude current user
-            .get();
+    final querySnapshot = await _firestore
+        .collection('users')
+        .where('name', isEqualTo: newUsername)
+        .where(
+          FieldPath.documentId,
+          isNotEqualTo: user.uid,
+        ) // Exclude current user
+        .get();
 
     if (querySnapshot.docs.isNotEmpty) {
       throw 'Username is already taken';
@@ -186,14 +184,16 @@ class AuthService {
       // First verify if the user is an admin
       final userCredential = await signInWithEmailAndPassword(email, password);
       final isUserAdmin = await isAdmin(userCredential.user!.uid);
-      
+
       if (!isUserAdmin) {
         await signOut();
         throw 'Access denied. Not an admin user.';
       }
 
       // Enable 2FA if not already enabled
-      if (!userCredential.user!.multiFactor.enrolledFactors.isNotEmpty) {
+      final enrolledFactors =
+          await userCredential.user!.multiFactor.getEnrolledFactors();
+      if (enrolledFactors.isEmpty) {
         // TODO: Implement 2FA enrollment flow
         throw '2FA not set up. Please contact system administrator.';
       }
@@ -202,5 +202,24 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
+  }
+
+  // Get user data by ID
+  Future<app_user.User?> getUserData(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) return null;
+
+    final data = userDoc.data()!;
+    return app_user.User(
+      id: userId,
+      name: data['name'] ?? 'Anonymous',
+      handle: data['handle'] ?? 'anonymous',
+      profileImageUrl: data['profileImageUrl'] ??
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(data['name'] ?? 'Anonymous')}&background=random',
+      isVerified: data['isVerified'] ?? false,
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : null,
+    );
   }
 }
