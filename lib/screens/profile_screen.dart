@@ -11,6 +11,10 @@ import '../screens/follow_list_screen.dart';
 import '../models/report.dart';
 import '../services/report_service.dart';
 import '../widgets/report_dialog.dart';
+import 'home_screen.dart';
+import 'search_screen.dart';
+import 'notifications_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -141,19 +145,51 @@ class _ProfileScreenState extends State<ProfileScreen>
     // Handle navigation based on the selected item
     switch (item) {
       case NavBarItem.home:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const HomeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.search:
-        Navigator.pushReplacementNamed(context, '/search');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SearchScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.profile:
         // Already on profile
         break;
       case NavBarItem.notifications:
-        Navigator.pushReplacementNamed(context, '/notifications');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const NotificationsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.settings:
-        Navigator.pushReplacementNamed(context, '/settings');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
     }
   }
@@ -168,15 +204,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Column(
         children: [
-          // Navigation Bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.profile,
-            onItemSelected: _handleNavigation,
-            showBackButton: true,
-          ),
-
           // Profile Header
           Container(
             height: 150,
@@ -484,6 +521,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const Center(child: Text('Likes')),
               ],
             ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Tweets'),
+              Tab(text: 'Media'),
+              Tab(text: 'Likes'),
+            ],
+          ),
+          AppNavigationBar(
+            selectedItem: NavBarItem.profile,
+            onItemSelected: _handleNavigation,
           ),
         ],
       ),

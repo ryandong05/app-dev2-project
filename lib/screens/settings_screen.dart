@@ -4,6 +4,10 @@ import '../widgets/app_navigation_bar.dart';
 import '../models/settings_model.dart';
 import '../services/auth_service.dart';
 import 'account_settings_screen.dart';
+import 'home_screen.dart';
+import 'search_screen.dart';
+import 'profile_screen.dart';
+import 'notifications_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -35,16 +39,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Handle navigation based on the selected item
     switch (item) {
       case NavBarItem.home:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const HomeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.search:
-        Navigator.pushReplacementNamed(context, '/search');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SearchScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.profile:
-        Navigator.pushReplacementNamed(context, '/profile');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const ProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.notifications:
-        Navigator.pushReplacementNamed(context, '/notifications');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const NotificationsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.settings:
         // Already on settings
@@ -56,29 +92,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settings = Provider.of<SettingsModel>(context, listen: false);
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Select Language'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: const Text('English'),
-                  onTap: () {
-                    settings.setLanguage('English');
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  title: const Text('French'),
-                  onTap: () {
-                    settings.setLanguage('French');
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
+      builder: (context) => AlertDialog(
+        title: const Text('Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('English'),
+              onTap: () {
+                settings.setLanguage('English');
+                Navigator.pop(context);
+              },
             ),
-          ),
+            ListTile(
+              title: const Text('French'),
+              onTap: () {
+                settings.setLanguage('French');
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -88,15 +123,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, settings, child) {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
           body: Column(
             children: [
-              // Navigation Bar
-              AppNavigationBar(
-                selectedItem: NavBarItem.settings,
-                onItemSelected: _handleNavigation,
-                showBackButton: true,
-              ),
-
               // Settings Title
               Container(
                 width: double.infinity,
@@ -184,6 +220,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {},
               ),
             ],
+          ),
+          bottomNavigationBar: AppNavigationBar(
+            selectedItem: NavBarItem.settings,
+            onItemSelected: _handleNavigation,
           ),
         );
       },

@@ -48,25 +48,45 @@ class _HomeScreenState extends State<HomeScreen> {
       case NavBarItem.search:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SearchScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SearchScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.profile:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const ProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.notifications:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const NotificationsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.settings:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
     }
@@ -84,36 +104,34 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: TweetComposer(
-              onTweet: (content, media) async {
-                final newTweet = Tweet(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  user: currentUser,
-                  content: content,
-                  timeAgo: '', // Will be set by TweetService
-                  timestamp:
-                      DateTime.now(), // Will be overwritten by server timestamp
-                  comments: 0,
-                  reposts: 0,
-                  likes: const [],
-                  likedBy: const [],
-                  imageUrls: media,
-                  retweets: const [],
-                  replies: const [],
-                  hasMedia: media.isNotEmpty,
-                  mediaType:
-                      media.isNotEmpty ? MediaType.image : MediaType.none,
-                );
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: TweetComposer(
+          onTweet: (content, media) async {
+            final newTweet = Tweet(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              user: currentUser,
+              content: content,
+              timeAgo: '', // Will be set by TweetService
+              timestamp:
+                  DateTime.now(), // Will be overwritten by server timestamp
+              comments: 0,
+              reposts: 0,
+              likes: const [],
+              likedBy: const [],
+              imageUrls: media,
+              retweets: const [],
+              replies: const [],
+              hasMedia: media.isNotEmpty,
+              mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
+            );
 
-                await _tweetService.addTweet(newTweet);
-              },
-            ),
-          ),
+            await _tweetService.addTweet(newTweet);
+          },
+        ),
+      ),
     );
   }
 
@@ -123,23 +141,12 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
-          // Navigation Bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.home,
-            onItemSelected: _handleNavigation,
-            showBackButton: Navigator.of(context).canPop(),
-          ),
-
-          // Tweets List
+          // Content
           Expanded(
-            child: ListView.separated(
+            child: ListView.builder(
               itemCount: _tweets.length,
-              separatorBuilder:
-                  (context, index) =>
-                      Divider(height: 1, color: Theme.of(context).dividerColor),
               itemBuilder: (context, index) {
-                final tweet = _tweets[index];
-                return tweet_card.TweetCard(tweet: tweet);
+                return tweet_card.TweetCard(tweet: _tweets[index]);
               },
             ),
           ),
@@ -147,15 +154,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showTweetComposer,
-        backgroundColor:
-            Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black,
-        foregroundColor:
-            Theme.of(context).brightness == Brightness.dark
-                ? Colors.black
-                : Colors.white,
         child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: AppNavigationBar(
+        selectedItem: NavBarItem.home,
+        onItemSelected: _handleNavigation,
       ),
     );
   }

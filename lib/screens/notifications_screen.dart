@@ -31,30 +31,50 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _handleNavigation(NavBarItem item) {
     switch (item) {
       case NavBarItem.home:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const HomeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.search:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SearchScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SearchScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.notifications:
         // Already on notifications
         break;
       case NavBarItem.profile:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const ProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.settings:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
     }
@@ -64,6 +84,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('Notifications'),
         actions: [
           IconButton(
@@ -74,48 +100,40 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Notifications content
-          Expanded(
-            child: StreamBuilder<List<app_notification.Notification>>(
-              stream: _notificationsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: StreamBuilder<List<app_notification.Notification>>(
+        stream: _notificationsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
 
-                final notifications = snapshot.data ?? [];
+          final notifications = snapshot.data ?? [];
 
-                if (notifications.isEmpty) {
-                  return const Center(
-                    child: Text('No notifications yet'),
-                  );
-                }
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Text('No notifications yet'),
+            );
+          }
 
-                return ListView.builder(
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    return NotificationCard(
-                      notification: notifications[index],
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          // Navigation bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.notifications,
-            onItemSelected: _handleNavigation,
-          ),
-        ],
+          return ListView.builder(
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              return NotificationCard(
+                notification: notifications[index],
+              );
+            },
+          );
+        },
+      ),
+      bottomNavigationBar: AppNavigationBar(
+        selectedItem: NavBarItem.notifications,
+        onItemSelected: _handleNavigation,
       ),
     );
   }
