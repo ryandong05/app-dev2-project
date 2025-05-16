@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
+import 'sign_in_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -105,6 +106,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _passwordController.text,
       );
 
+      // Send verification email
+      await userCredential.user!.sendEmailVerification();
+
       // Store additional user data in Firestore
       await FirebaseFirestore.instance
           .collection('users')
@@ -121,16 +125,70 @@ class _SignUpScreenState extends State<SignUpScreen> {
       });
 
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        // Show email verification dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => WillPopScope(
+            onWillPop: () async => false, // Prevent back button
+            child: AlertDialog(
+              title: const Text('Verify Your Email'),
+              content: const Text(
+                'A verification email has been sent to your email address. '
+                'Please verify your email before proceeding.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    // Check email verification status
+                    final isVerified = await _authService.isEmailVerified();
+                    if (isVerified) {
+                      if (mounted) {
+                        Navigator.of(context).pop(); // Close dialog
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SignInScreen()),
+                        );
+                      }
+                    } else {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please verify your email first'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('I have verified my email'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final user = _authService.currentUser;
+                    if (user != null) {
+                      await user.sendEmailVerification();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Verification email resent'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Resend verification email'),
+                ),
+              ],
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
       }
     } finally {
       if (mounted) {
