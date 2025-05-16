@@ -19,13 +19,22 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationService _notificationService = NotificationService();
   final AuthService _authService = AuthService();
-  late Stream<List<app_notification.Notification>> _notificationsStream;
+  Stream<List<app_notification.Notification>>? _notificationsStream;
 
   @override
   void initState() {
     super.initState();
-    _notificationsStream = _notificationService
-        .getUserNotifications(_authService.currentUser?.uid ?? '');
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    final currentUser = await _authService.getCurrentUserData();
+    if (currentUser != null && mounted) {
+      setState(() {
+        _notificationsStream =
+            _notificationService.getUserNotifications(currentUser.id);
+      });
+    }
   }
 
   void _handleNavigation(NavBarItem item) {
@@ -93,44 +102,49 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: const Text('Notifications'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: Navigate to notification settings
-            },
+            icon: const Icon(Icons.refresh),
+            onPressed: _initializeNotifications,
           ),
         ],
       ),
-      body: StreamBuilder<List<app_notification.Notification>>(
-        stream: _notificationsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _notificationsStream == null
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<List<app_notification.Notification>>(
+              stream: _notificationsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
+                }
 
-          final notifications = snapshot.data ?? [];
+                final notifications = snapshot.data ?? [];
 
-          if (notifications.isEmpty) {
-            return const Center(
-              child: Text('No notifications yet'),
-            );
-          }
+                if (notifications.isEmpty) {
+                  return const Center(
+                    child: Text('No notifications yet'),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              return NotificationCard(
-                notification: notifications[index],
-              );
-            },
-          );
-        },
-      ),
+                return ListView.builder(
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    final notification = notifications[index];
+                    return NotificationCard(
+                      notification: notification,
+                      onDismiss: () {
+                        // The notification will be automatically removed from the list
+                        // due to the StreamBuilder listening to the notifications stream
+                      },
+                    );
+                  },
+                );
+              },
+            ),
       bottomNavigationBar: AppNavigationBar(
         selectedItem: NavBarItem.notifications,
         onItemSelected: _handleNavigation,

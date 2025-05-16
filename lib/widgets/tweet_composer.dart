@@ -11,7 +11,6 @@ class TweetComposer extends StatefulWidget {
 
 class _TweetComposerState extends State<TweetComposer> {
   final TextEditingController _tweetController = TextEditingController();
-  final List<String> _selectedMedia = [];
   final int _maxCharacters = 280;
   bool _isLoading = false;
 
@@ -31,7 +30,7 @@ class _TweetComposerState extends State<TweetComposer> {
     // Simulate network delay
     Future.delayed(const Duration(seconds: 1), () {
       if (widget.onTweet != null) {
-        widget.onTweet!(_tweetController.text, _selectedMedia);
+        widget.onTweet!(_tweetController.text, []); // Empty media list
       }
 
       setState(() {
@@ -39,22 +38,6 @@ class _TweetComposerState extends State<TweetComposer> {
       });
 
       Navigator.pop(context);
-    });
-  }
-
-  void _addMedia() {
-    // This would typically open a media picker
-    // For now, we'll just add a placeholder
-    setState(() {
-      _selectedMedia.add(
-        'https://picsum.photos/400/300?random=${_selectedMedia.length}',
-      );
-    });
-  }
-
-  void _removeMedia(int index) {
-    setState(() {
-      _selectedMedia.removeAt(index);
     });
   }
 
@@ -89,21 +72,18 @@ class _TweetComposerState extends State<TweetComposer> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed:
-                      isOverLimit ||
-                              _tweetController.text.trim().isEmpty ||
-                              _isLoading
-                          ? null
-                          : _handleTweet,
+                  onPressed: isOverLimit ||
+                          _tweetController.text.trim().isEmpty ||
+                          _isLoading
+                      ? null
+                      : _handleTweet,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        theme.brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                    foregroundColor:
-                        theme.brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                    foregroundColor: theme.brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -112,20 +92,18 @@ class _TweetComposerState extends State<TweetComposer> {
                       vertical: 10,
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color:
-                                  theme.brightness == Brightness.dark
-                                      ? Colors.black
-                                      : Colors.white,
-                            ),
-                          )
-                          : const Text('Post'),
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.black
+                                : Colors.white,
+                          ),
+                        )
+                      : const Text('Post'),
                 ),
               ],
             ),
@@ -142,10 +120,9 @@ class _TweetComposerState extends State<TweetComposer> {
                 // Profile Image
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.grey.shade800
-                          : Colors.grey,
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.grey.shade800
+                      : Colors.grey,
                   child: Icon(
                     Icons.person,
                     color: theme.scaffoldBackgroundColor,
@@ -176,91 +153,14 @@ class _TweetComposerState extends State<TweetComposer> {
             ),
           ),
 
-          // Media Preview
-          if (_selectedMedia.isNotEmpty)
-            Container(
-              height: 100,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _selectedMedia.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            _selectedMedia[index],
-                            width: 100,
-                            height: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () => _removeMedia(index),
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
           Divider(height: 1, color: theme.dividerColor),
 
           // Footer
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Media options
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.image, color: Colors.blue),
-                      onPressed: _addMedia,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.gif_box, color: Colors.blue),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.bar_chart, color: Colors.blue),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.emoji_emotions,
-                        color: Colors.blue,
-                      ),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.schedule, color: Colors.blue),
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-
                 // Character counter
                 Container(
                   width: 30,
@@ -276,10 +176,9 @@ class _TweetComposerState extends State<TweetComposer> {
                     child: Text(
                       remainingChars.toString(),
                       style: TextStyle(
-                        color:
-                            isOverLimit
-                                ? Colors.red
-                                : theme.textTheme.bodySmall?.color,
+                        color: isOverLimit
+                            ? Colors.red
+                            : theme.textTheme.bodySmall?.color,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),

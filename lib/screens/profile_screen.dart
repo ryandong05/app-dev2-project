@@ -4,6 +4,7 @@ import '../widgets/app_navigation_bar.dart';
 import '../widgets/tweet_card.dart';
 import '../models/tweet.dart';
 import '../models/user.dart';
+import '../models/comment.dart';
 import '../services/tweet_service.dart';
 import '../services/auth_service.dart';
 import '../services/follow_service.dart';
@@ -15,6 +16,8 @@ import 'home_screen.dart';
 import 'search_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/comment_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -32,6 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   final FollowService _followService = FollowService();
   final ReportService _reportService = ReportService();
   List<Tweet> _tweets = [];
+  List<Comment> _comments = [];
+  List<Tweet> _likedTweets = [];
   User? _currentUser;
   List<User> _followers = [];
   List<User> _following = [];
@@ -42,7 +47,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _loadUserData();
-    _loadTweets();
   }
 
   Future<void> _loadUserData() async {
@@ -57,6 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       });
       if (profileUser != null) {
         _loadFollowersAndFollowing(profileUser.id);
+        _loadTweets();
+        _loadComments();
+        _loadLikedTweets();
       }
     }
   }
@@ -86,6 +93,35 @@ class _ProfileScreenState extends State<ProfileScreen>
           // Filter tweets to show only the current user's posts
           _tweets = tweets
               .where((tweet) => tweet.user.id == _currentUser?.id)
+              .toList();
+        });
+      }
+    });
+  }
+
+  void _loadComments() {
+    // Listen to all comments made by the user
+    FirebaseFirestore.instance
+        .collection('comments')
+        .where('user.id', isEqualTo: _currentUser?.id)
+        .snapshots()
+        .listen((snapshot) {
+      final comments =
+          snapshot.docs.map((doc) => Comment.fromFirestore(doc)).toList();
+      if (mounted) {
+        setState(() {
+          _comments = comments;
+        });
+      }
+    });
+  }
+
+  void _loadLikedTweets() {
+    _tweetService.getTweets().listen((tweets) {
+      if (mounted) {
+        setState(() {
+          _likedTweets = tweets
+              .where((tweet) => tweet.likes.contains(_currentUser?.id))
               .toList();
         });
       }
@@ -216,53 +252,45 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       body: Column(
         children: [
-          // Profile Header
-          Container(
-            height: 150,
-            color: theme.brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.black,
-            child: Stack(
+          // Profile picture and name (no banner)
+          Padding(
+            padding:
+                const EdgeInsets.only(top: 24, left: 16, right: 16, bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Profile title
-                Center(
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.scaffoldBackgroundColor,
+                      width: 4,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundImage: _currentUser!.profileImageUrl.isNotEmpty
+                        ? NetworkImage(_currentUser!.profileImageUrl)
+                        : null,
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.black,
+                    child: _currentUser!.profileImageUrl.isEmpty
+                        ? Icon(
+                            Icons.person,
+                            size: 50,
+                            color: theme.scaffoldBackgroundColor,
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
                   child: Text(
                     _currentUser!.name,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                // Profile picture
-                Positioned(
-                  bottom: -40,
-                  left: 16,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.scaffoldBackgroundColor,
-                        width: 4,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundImage: _currentUser!.profileImageUrl.isNotEmpty
-                          ? NetworkImage(_currentUser!.profileImageUrl)
-                          : null,
-                      backgroundColor: theme.brightness == Brightness.dark
-                          ? Colors.grey.shade800
-                          : Colors.black,
-                      child: _currentUser!.profileImageUrl.isEmpty
-                          ? Icon(
-                              Icons.person,
-                              size: 50,
-                              color: theme.scaffoldBackgroundColor,
-                            )
-                          : null,
                     ),
                   ),
                 ),
@@ -300,25 +328,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                if (_currentUserId == _currentUser!.id)
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      side: BorderSide(color: theme.dividerColor),
-                      foregroundColor: theme.textTheme.bodyLarge?.color,
-                    ),
-                    child: Text(
-                      'Edit profile',
-                      style: TextStyle(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
                   ),
               ],
@@ -386,23 +395,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Bio not set',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.link, color: Colors.blue, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'No website set',
-                      style: const TextStyle(color: Colors.blue, fontSize: 14),
-                    ),
-                    const SizedBox(width: 16),
                     Icon(
                       Icons.calendar_today,
                       color: theme.textTheme.bodySmall?.color,
@@ -498,8 +492,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             indicatorColor: Colors.blue,
             tabs: const [
               Tab(text: 'Posts'),
-              Tab(text: 'Posts & replies'),
-              Tab(text: 'Media'),
+              Tab(text: 'Comments'),
               Tab(text: 'Likes'),
             ],
           ),
@@ -520,35 +513,35 @@ class _ProfileScreenState extends State<ProfileScreen>
                   },
                 ),
 
-                // Posts & Replies Tab
-                const Center(child: Text('Posts & Replies')),
-
-                // Media Tab
-                const Center(child: Text('Media')),
+                // Comments Tab
+                ListView.separated(
+                  itemCount: _comments.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final comment = _comments[index];
+                    return CommentCard(comment: comment);
+                  },
+                ),
 
                 // Likes Tab
-                const Center(child: Text('Likes')),
+                ListView.separated(
+                  itemCount: _likedTweets.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tweet = _likedTweets[index];
+                    return TweetCard(tweet: tweet);
+                  },
+                ),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Tweets'),
-              Tab(text: 'Media'),
-              Tab(text: 'Likes'),
-            ],
-          ),
-          AppNavigationBar(
-            selectedItem: NavBarItem.profile,
-            onItemSelected: _handleNavigation,
-          ),
-        ],
+      bottomNavigationBar: AppNavigationBar(
+        selectedItem: NavBarItem.profile,
+        onItemSelected: _handleNavigation,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

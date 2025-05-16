@@ -56,61 +56,61 @@ class TweetService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) async {
-          try {
-            List<Tweet> allTweets = [];
+      try {
+        List<Tweet> allTweets = [];
 
-            // Process each document
-            for (var doc in snapshot.docs) {
-              final data = doc.data();
-              final timestamp = data['createdAt'] as Timestamp?;
-              final createdAt = timestamp?.toDate() ?? DateTime.now();
+        // Process each document
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final timestamp = data['createdAt'] as Timestamp?;
+          final createdAt = timestamp?.toDate() ?? DateTime.now();
 
-              // Get user info for each like
-              List<String> likedByNames = [];
-              if (data['likedBy'] != null) {
-                likedByNames = List<String>.from(data['likedBy']);
-              }
-
-              final tweet = Tweet(
-                id: data['id'],
-                user: User(
-                  id: data['user']['id'],
-                  name: data['user']['name'],
-                  handle: data['user']['handle'],
-                  profileImageUrl: data['user']['profileImageUrl'],
-                  isVerified: data['user']['isVerified'] ?? false,
-                ),
-                content: data['content'],
-                timeAgo: TweetUtils.formatTimeAgo(createdAt),
-                timestamp: createdAt,
-                comments: data['comments'] ?? 0,
-                reposts: data['reposts'] ?? 0,
-                likes: List<String>.from(data['likes'] ?? []),
-                likedBy: likedByNames,
-                repostedBy: data['repostedBy'],
-                isThread: data['isThread'] ?? false,
-                hasMedia: data['hasMedia'] ?? false,
-                mediaType: MediaType.values[data['mediaType'] ?? 0],
-                imageUrls: List<String>.from(data['imageUrls'] ?? []),
-                retweets: List<String>.from(data['retweets'] ?? []),
-                replies: List<String>.from(data['replies'] ?? []),
-                parentTweetId: data['parentTweetId'],
-                isRetweet: data['isRetweet'] ?? false,
-                retweetedBy: data['retweetedBy'],
-              );
-
-              allTweets.add(tweet);
-            }
-
-            // Sort tweets by timestamp
-            allTweets.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-            // Add tweets to stream
-            controller.add(allTweets);
-          } catch (e) {
-            controller.addError(e);
+          // Get user info for each like
+          List<String> likedByNames = [];
+          if (data['likedBy'] != null) {
+            likedByNames = List<String>.from(data['likedBy']);
           }
-        });
+
+          final tweet = Tweet(
+            id: data['id'],
+            user: User(
+              id: data['user']['id'],
+              name: data['user']['name'],
+              handle: data['user']['handle'],
+              profileImageUrl: data['user']['profileImageUrl'],
+              isVerified: data['user']['isVerified'] ?? false,
+            ),
+            content: data['content'],
+            timeAgo: TweetUtils.formatTimeAgo(createdAt),
+            timestamp: createdAt,
+            comments: data['comments'] ?? 0,
+            reposts: data['reposts'] ?? 0,
+            likes: List<String>.from(data['likes'] ?? []),
+            likedBy: likedByNames,
+            repostedBy: data['repostedBy'],
+            isThread: data['isThread'] ?? false,
+            hasMedia: data['hasMedia'] ?? false,
+            mediaType: MediaType.values[data['mediaType'] ?? 0],
+            imageUrls: List<String>.from(data['imageUrls'] ?? []),
+            retweets: List<String>.from(data['retweets'] ?? []),
+            replies: List<String>.from(data['replies'] ?? []),
+            parentTweetId: data['parentTweetId'],
+            isRetweet: data['isRetweet'] ?? false,
+            retweetedBy: data['retweetedBy'],
+          );
+
+          allTweets.add(tweet);
+        }
+
+        // Sort tweets by timestamp
+        allTweets.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+        // Add tweets to stream
+        controller.add(allTweets);
+      } catch (e) {
+        controller.addError(e);
+      }
+    });
 
     subscriptions.add(originalTweetsSubscription);
 
@@ -143,17 +143,21 @@ class TweetService {
 
     // Get user info for likedBy
     final userDoc = await _firestore.collection('users').doc(userId).get();
-    final userName = userDoc.exists ? userDoc.data()!['name'] ?? 'Anonymous' : 'Anonymous';
+    final userName =
+        userDoc.exists ? userDoc.data()!['name'] ?? 'Anonymous' : 'Anonymous';
 
     // Start a batch write
     final batch = _firestore.batch();
 
     // If this is a retweet, we'll work with the original tweet first
     if (isRetweet && parentTweetId != null) {
-      final originalDoc = await _firestore.collection(_collection).doc(parentTweetId).get();
+      final originalDoc =
+          await _firestore.collection(_collection).doc(parentTweetId).get();
       if (originalDoc.exists) {
-        final originalLikes = List<String>.from(originalDoc.data()!['likes'] ?? []);
-        final originalLikedBy = List<String>.from(originalDoc.data()!['likedBy'] ?? []);
+        final originalLikes =
+            List<String>.from(originalDoc.data()!['likes'] ?? []);
+        final originalLikedBy =
+            List<String>.from(originalDoc.data()!['likedBy'] ?? []);
 
         if (originalLikes.contains(userId)) {
           // Unlike
@@ -292,25 +296,22 @@ class TweetService {
   // Update user information across all their tweets
   Future<void> updateUserTweets(User user) async {
     // Update tweets where user is the author
-    final tweetsSnapshot =
-        await _firestore
-            .collection(_collection)
-            .where('user.id', isEqualTo: user.id)
-            .get();
+    final tweetsSnapshot = await _firestore
+        .collection(_collection)
+        .where('user.id', isEqualTo: user.id)
+        .get();
 
     // Update retweets where user is the retweeter
-    final retweetsSnapshot =
-        await _firestore
-            .collection(_collection)
-            .where('retweetedBy', isEqualTo: user.name)
-            .get();
+    final retweetsSnapshot = await _firestore
+        .collection(_collection)
+        .where('retweetedBy', isEqualTo: user.name)
+        .get();
 
     // Update comments by the user
-    final commentsSnapshot =
-        await _firestore
-            .collection(_commentsCollection)
-            .where('user.id', isEqualTo: user.id)
-            .get();
+    final commentsSnapshot = await _firestore
+        .collection(_commentsCollection)
+        .where('user.id', isEqualTo: user.id)
+        .get();
 
     final batch = _firestore.batch();
 
@@ -360,6 +361,24 @@ class TweetService {
     await _firestore.collection(_collection).doc(comment.tweetId).update({
       'comments': FieldValue.increment(1),
     });
+
+    // Get the tweet to find its author
+    final tweetDoc =
+        await _firestore.collection(_collection).doc(comment.tweetId).get();
+    if (tweetDoc.exists) {
+      final tweetData = tweetDoc.data()!;
+      final tweetAuthor = User.fromMap(tweetData['user']);
+
+      // Only create notification if the commenter is not the tweet author
+      if (tweetAuthor.id != comment.user.id) {
+        await _notificationService.createReplyNotification(
+          comment.user,
+          comment.tweetId,
+          tweetData['content'],
+          tweetAuthor.id,
+        );
+      }
+    }
   }
 
   // Get comments for a tweet
@@ -369,14 +388,14 @@ class TweetService {
         .where('tweetId', isEqualTo: tweetId)
         .snapshots()
         .asyncMap((snapshot) async {
-          List<Comment> comments = [];
-          for (var doc in snapshot.docs) {
-            comments.add(Comment.fromFirestore(doc));
-          }
-          // Sort comments by createdAt locally
-          comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return comments;
-        });
+      List<Comment> comments = [];
+      for (var doc in snapshot.docs) {
+        comments.add(Comment.fromFirestore(doc));
+      }
+      // Sort comments by createdAt locally
+      comments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return comments;
+    });
   }
 
   // Like/unlike a comment
@@ -402,6 +421,17 @@ class TweetService {
 
     if (currentLikes.contains(userId)) {
       if (!likedBy.contains(userName)) likedBy.add(userName);
+
+      // Create notification for the comment author when someone likes their comment
+      final commentAuthor = User.fromMap(data['user']);
+      if (commentAuthor.id != userId) {
+        await _notificationService.createLikeNotification(
+          User.fromMap(userDoc.data()!),
+          commentId,
+          data['content'],
+          commentAuthor.id,
+        );
+      }
     } else {
       likedBy.remove(userName);
     }
@@ -424,7 +454,8 @@ class TweetService {
 
   // Retweet a tweet
   Future<void> retweetTweet(String tweetId, User retweetingUser) async {
-    final tweetDoc = await _firestore.collection(_collection).doc(tweetId).get();
+    final tweetDoc =
+        await _firestore.collection(_collection).doc(tweetId).get();
     if (!tweetDoc.exists) return;
 
     final tweetData = tweetDoc.data()!;
@@ -515,10 +546,9 @@ class TweetService {
       'content': newContent,
       'imageUrls': newImageUrls,
       'hasMedia': newImageUrls.isNotEmpty,
-      'mediaType':
-          newImageUrls.isNotEmpty
-              ? MediaType.image.index
-              : MediaType.none.index,
+      'mediaType': newImageUrls.isNotEmpty
+          ? MediaType.image.index
+          : MediaType.none.index,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -529,11 +559,10 @@ class TweetService {
     await _firestore.collection(_collection).doc(tweetId).delete();
 
     // Delete all comments associated with this tweet
-    final commentsSnapshot =
-        await _firestore
-            .collection(_commentsCollection)
-            .where('tweetId', isEqualTo: tweetId)
-            .get();
+    final commentsSnapshot = await _firestore
+        .collection(_commentsCollection)
+        .where('tweetId', isEqualTo: tweetId)
+        .get();
 
     final batch = _firestore.batch();
     for (var doc in commentsSnapshot.docs) {

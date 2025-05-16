@@ -89,6 +89,11 @@ class NotificationService {
     await batch.commit();
   }
 
+  // Delete a notification
+  Future<void> deleteNotification(String notificationId) async {
+    await _firestore.collection(_collection).doc(notificationId).delete();
+  }
+
   // Create a like notification
   Future<void> createLikeNotification(
       User fromUser, String tweetId, String tweetContent, String userId) async {

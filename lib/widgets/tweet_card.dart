@@ -443,7 +443,6 @@ class _TweetCardState extends State<TweetCard> {
                                 );
                               },
                             ),
-                            _buildActionButton(icon: Icons.share, onTap: () {}),
                           ],
                         ),
                       ],
