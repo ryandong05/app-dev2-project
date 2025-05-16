@@ -185,10 +185,26 @@ class AuthService {
     String password,
   ) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      // Set handle to prefix of email
+      final user = credential.user;
+      if (user != null) {
+        final handle = email.split('@')[0];
+        await _firestore.collection('users').doc(user.uid).set({
+          'id': user.uid,
+          'name': user.displayName ?? '',
+          'handle': handle,
+          'profileImageUrl': user.photoURL ?? '',
+          'isVerified': false,
+          'following': [],
+          'followers': [],
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+      return credential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -394,6 +410,15 @@ class AuthService {
     final user = currentUser;
     if (user == null) throw 'No user logged in';
     await user.sendEmailVerification();
+  }
+
+  // Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
   }
 
   // Complete 2FA enrollment (first time)

@@ -203,17 +203,42 @@ class _SignInScreenState extends State<SignInScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton(
-                onPressed: () {
-                  // Handle forgot password
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Password reset link sent to your email',
-                        style: TextStyle(color: theme.colorScheme.onPrimary),
+                onPressed: () async {
+                  final email = _emailController.text.trim();
+                  if (email.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Please enter your email address'),
+                        backgroundColor: Colors.red,
                       ),
-                      backgroundColor: theme.colorScheme.primary,
-                    ),
-                  );
+                    );
+                    return;
+                  }
+
+                  try {
+                    await _authService.sendPasswordResetEmail(email);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Password reset link sent to your email',
+                            style:
+                                TextStyle(color: theme.colorScheme.onPrimary),
+                          ),
+                          backgroundColor: theme.colorScheme.primary,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(e.toString()),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
                 style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
@@ -241,12 +266,8 @@ class _SignInScreenState extends State<SignInScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                  foregroundColor: theme.brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -256,7 +277,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
                 child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? CircularProgressIndicator(
+                        color: theme.colorScheme.onPrimary)
                     : const Text('Submit'),
               ),
             ),
@@ -273,10 +295,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         builder: (context) => const AdminSignInScreen()),
                   );
                 },
-                child: Text(
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                ),
+                child: const Text(
                   'Admin Sign In',
                   style: TextStyle(
-                    color: theme.primaryColor,
                     fontSize: 14,
                   ),
                 ),

@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../models/notification.dart' as app_notification;
 import '../models/user.dart';
+import '../models/settings_model.dart';
+import 'package:provider/provider.dart';
 
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -23,9 +25,28 @@ class NotificationService {
     });
   }
 
+  // Check if notifications are enabled for a user
+  Future<bool> areNotificationsEnabled(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) return true; // Default to enabled if no setting found
+    return userDoc.data()?['notificationsEnabled'] ?? true;
+  }
+
+  // Update notification settings for a user
+  Future<void> updateNotificationSettings(String userId, bool enabled) async {
+    await _firestore.collection('users').doc(userId).update({
+      'notificationsEnabled': enabled,
+    });
+  }
+
   // Create a new notification
   Future<void> createNotification(
       app_notification.Notification notification) async {
+    // Check if notifications are enabled for the user
+    final notificationsEnabled =
+        await areNotificationsEnabled(notification.userId);
+    if (!notificationsEnabled) return;
+
     // Store in Firestore
     await _firestore
         .collection(_collection)

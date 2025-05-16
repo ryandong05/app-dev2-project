@@ -16,6 +16,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _handleController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneCodeController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
@@ -61,6 +62,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _handleController.dispose();
     _passwordController.dispose();
     _phoneCodeController.dispose();
     _phoneNumberController.dispose();
@@ -98,6 +100,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    if (_handleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a handle'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       // Create user in Firebase Auth
@@ -115,14 +126,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .doc(userCredential.user!.uid)
           .set({
         'name': _nameController.text.trim(),
+        'handle': _handleController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': '${_phoneCodeController.text}${_phoneNumberController.text}',
         'dob': _dobController.text,
         'gender': _selectedGender,
         'country': _selectedCountry,
+        'profileImageUrl': '',
+        'isVerified': false,
+        'following': [],
+        'followers': [],
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       if (mounted) {
         // Show email verification dialog
@@ -140,6 +156,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               actions: [
                 TextButton(
                   onPressed: () async {
+                    // Reload user to get latest verification status
+                    await _authService.currentUser?.reload();
                     // Check email verification status
                     final isVerified = await _authService.isEmailVerified();
                     if (isVerified) {
@@ -272,6 +290,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 style: TextStyle(color: theme.textTheme.bodyLarge?.color),
                 decoration: InputDecoration(
                   hintText: 'Enter your full name',
+                  hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: theme.primaryColor),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Handle field
+              Text(
+                'Handle*',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: theme.textTheme.bodySmall?.color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _handleController,
+                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
+                  hintText: 'Enter your handle (without @)',
                   hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
                   enabledBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: theme.dividerColor),
@@ -580,12 +623,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                    foregroundColor: theme.brightness == Brightness.dark
-                        ? Colors.black
-                        : Colors.white,
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -595,7 +634,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(
+                          color: theme.colorScheme.onPrimary)
                       : const Text('Submit'),
                 ),
               ),
@@ -607,6 +647,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _buildRequirement(String text, bool isMet) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -614,14 +655,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Icon(
             isMet ? Icons.check_circle : Icons.circle,
             size: 16,
-            color: isMet ? Colors.green : Colors.grey,
+            color:
+                isMet ? theme.colorScheme.primary : theme.colorScheme.outline,
           ),
           const SizedBox(width: 8),
           Text(
             text,
             style: TextStyle(
               fontSize: 14,
-              color: isMet ? Colors.green : Colors.grey,
+              color:
+                  isMet ? theme.colorScheme.primary : theme.colorScheme.outline,
             ),
           ),
         ],

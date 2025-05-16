@@ -354,13 +354,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                             color: theme.textTheme.bodyLarge?.color,
                           ),
                         ),
-                        Text(
-                          '@${_currentUser!.handle}',
-                          style: TextStyle(
-                            color: theme.textTheme.bodySmall?.color,
-                            fontSize: 14,
-                          ),
-                        ),
                       ],
                     ),
                     if (_currentUserId != null &&
@@ -381,9 +374,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  isFollowing ? Colors.grey : Colors.blue,
-                              foregroundColor: Colors.white,
+                              backgroundColor: isFollowing
+                                  ? Colors.grey
+                                  : theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -489,7 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             controller: _tabController,
             labelColor: theme.textTheme.bodyLarge?.color,
             unselectedLabelColor: theme.textTheme.bodySmall?.color,
-            indicatorColor: Colors.blue,
+            indicatorColor: theme.colorScheme.primary,
             tabs: const [
               Tab(text: 'Posts'),
               Tab(text: 'Comments'),

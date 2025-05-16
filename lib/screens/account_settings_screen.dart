@@ -11,13 +11,15 @@ class AccountSettingsScreen extends StatefulWidget {
 
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _authService = AuthService();
-  final _usernameController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _handleController = TextEditingController();
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isUsernameLoading = false;
+  bool _isProfileLoading = false;
   bool _isPasswordLoading = false;
-  String? _currentUsername;
+  String? _currentName;
+  String? _currentHandle;
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
@@ -32,13 +34,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    _loadUserData();
     _newPasswordController.addListener(_validatePassword);
   }
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _nameController.dispose();
+    _handleController.dispose();
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -64,37 +67,38 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _hasSpecialChar;
   }
 
-  Future<void> _loadUsername() async {
-    final username = await _authService.getCurrentUsername();
-    if (mounted) {
+  Future<void> _loadUserData() async {
+    final userData = await _authService.getCurrentUserData();
+    if (mounted && userData != null) {
       setState(() {
-        _currentUsername = username;
-        _usernameController.text = username ?? '';
+        _currentName = userData.name;
+        _currentHandle = userData.handle;
+        _nameController.text = userData.name;
+        _handleController.text = userData.handle;
       });
     }
   }
 
-  Future<void> _updateUsername() async {
-    if (_usernameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Username cannot be empty')));
+  Future<void> _updateProfile() async {
+    if (_nameController.text.trim().isEmpty ||
+        _handleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and handle cannot be empty')),
+      );
       return;
     }
 
-    setState(() => _isUsernameLoading = true);
+    setState(() => _isProfileLoading = true);
     try {
       final currentUser = await _authService.getCurrentUserData();
       if (currentUser == null) {
         throw 'No user logged in';
       }
 
-      // Update username in auth service
-      await _authService.updateUsername(_usernameController.text.trim());
-
-      // Update user profile with new handle
+      // Update user profile with new name and handle
       await _authService.updateUserProfile(
-        handle: _usernameController.text.trim(),
+        name: _nameController.text.trim(),
+        handle: _handleController.text.trim(),
       );
 
       // Get updated user data
@@ -108,7 +112,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Username updated successfully'),
+            content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -121,7 +125,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isUsernameLoading = false);
+        setState(() => _isProfileLoading = false);
       }
     }
   }
@@ -239,9 +243,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Username section
+            // Profile section
             Text(
-              'Username',
+              'Profile',
               style: TextStyle(
                 fontSize: 16,
                 color: theme.textTheme.bodySmall?.color,
@@ -249,10 +253,25 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
-              controller: _usernameController,
+              controller: _nameController,
               style: TextStyle(color: theme.textTheme.bodyLarge?.color),
               decoration: InputDecoration(
-                hintText: 'Enter new username',
+                hintText: 'Enter your name',
+                hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.dividerColor),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: theme.primaryColor),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _handleController,
+              style: TextStyle(color: theme.textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: 'Enter your handle (without @)',
                 hintStyle: TextStyle(color: theme.textTheme.bodySmall?.color),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: theme.dividerColor),
@@ -266,23 +285,21 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isUsernameLoading ? null : _updateUsername,
+                onPressed: _isProfileLoading ? null : _updateProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                  foregroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 child: Text(
-                  _isUsernameLoading ? 'Updating...' : 'Update Username',
+                  _isProfileLoading ? 'Updating...' : 'Update Profile',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
@@ -421,14 +438,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               child: ElevatedButton(
                 onPressed: _isPasswordLoading ? null : _updatePassword,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                  foregroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

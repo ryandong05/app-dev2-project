@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../widgets/app_navigation_bar.dart';
 import '../models/settings_model.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'account_settings_screen.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -18,19 +19,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _authService = AuthService();
-  String _username = '@Profile';
+  String _name = 'Profile';
+  String _handle = '@Profile';
 
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    _loadUserData();
   }
 
-  Future<void> _loadUsername() async {
-    final username = await _authService.getCurrentUsername();
-    if (mounted) {
+  Future<void> _loadUserData() async {
+    final userData = await _authService.getCurrentUserData();
+    if (mounted && userData != null) {
       setState(() {
-        _username = '@${username ?? 'Profile'}';
+        _name = userData.name;
+        _handle = '@${userData.handle}';
       });
     }
   }
@@ -88,35 +91,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showLanguageDialog(BuildContext context) {
-    final settings = Provider.of<SettingsModel>(context, listen: false);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('English'),
-              onTap: () {
-                settings.setLanguage('English');
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: const Text('French'),
-              onTap: () {
-                settings.setLanguage('French');
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsModel>(
@@ -153,13 +127,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 color: Theme.of(context).scaffoldBackgroundColor,
-                child: Text(
-                  _username,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _name,
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _handle,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -173,8 +160,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       builder: (context) => const AccountSettingsScreen(),
                     ),
                   );
-                  // Reload username when returning from account settings
-                  _loadUsername();
+                  // Reload user data when returning from account settings
+                  _loadUserData();
                 },
               ),
 
@@ -183,7 +170,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Notifications',
                 trailing: Switch(
                   value: settings.notificationsEnabled,
-                  onChanged: (value) => settings.toggleNotifications(),
+                  onChanged: (value) async {
+                    settings.toggleNotifications();
+                    final userData = await _authService.getCurrentUserData();
+                    if (userData != null) {
+                      await NotificationService().updateNotificationSettings(
+                        userData.id,
+                        value,
+                      );
+                    }
+                  },
                 ),
                 onTap: () {},
               ),
@@ -201,13 +197,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-
-              // Language Setting
-              _buildSettingItem(
-                title: 'Language',
-                subtitle: settings.currentLanguage,
-                onTap: () => _showLanguageDialog(context),
               ),
 
               // Theme Setting
