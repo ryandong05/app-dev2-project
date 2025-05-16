@@ -123,6 +123,12 @@ class AuthService {
     }
   }
 
+  // Check if user is banned
+  Future<bool> isUserBanned(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    return userDoc.exists && (userDoc.data()?['isBanned'] ?? false);
+  }
+
   // Sign in with email and password
   Future<UserCredential> signInWithEmailAndPassword(
     String email,
@@ -136,6 +142,16 @@ class AuthService {
       );
       print(
           'DEBUG: Firebase sign in successful for user: ${credential.user?.uid}');
+
+      // Check if user is banned
+      if (credential.user != null) {
+        final isBanned = await isUserBanned(credential.user!.uid);
+        if (isBanned) {
+          await signOut(); // Sign out the banned user
+          throw 'Your account has been banned. Please contact support for more information.';
+        }
+      }
+
       return credential;
     } on FirebaseAuthException catch (e) {
       print('DEBUG: Firebase Auth Exception: ${e.code} - ${e.message}');
