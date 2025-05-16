@@ -6,12 +6,14 @@ class ReportDialog extends StatefulWidget {
   final String reportedId;
   final ReportType type;
   final String reportedName;
+  final String reporterId;
 
   const ReportDialog({
     Key? key,
     required this.reportedId,
     required this.type,
     required this.reportedName,
+    required this.reporterId,
   }) : super(key: key);
 
   @override
@@ -85,7 +87,6 @@ class _ReportDialogState extends State<ReportDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentUser = ModalRoute.of(context)?.settings.arguments as String?;
 
     return AlertDialog(
       title: Text('Report ${widget.type == ReportType.post ? 'Post' : 'User'}'),
@@ -100,11 +101,12 @@ class _ReportDialogState extends State<ReportDialog> {
             ),
             const SizedBox(height: 16),
             ..._reportReasons.map((reason) => RadioListTile<String>(
-              title: Text(reason),
-              value: reason,
-              groupValue: _selectedReason,
-              onChanged: (value) => setState(() => _selectedReason = value!),
-            )),
+                  title: Text(reason),
+                  value: reason,
+                  groupValue: _selectedReason,
+                  onChanged: (value) =>
+                      setState(() => _selectedReason = value!),
+                )),
             const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
@@ -123,11 +125,8 @@ class _ReportDialogState extends State<ReportDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: currentUser == null
-              ? null
-              : _isSubmitting
-                  ? null
-                  : () => _submitReport(currentUser),
+          onPressed:
+              _isSubmitting ? null : () => _submitReport(widget.reporterId),
           child: _isSubmitting
               ? const SizedBox(
                   width: 20,
@@ -139,4 +138,4 @@ class _ReportDialogState extends State<ReportDialog> {
       ],
     );
   }
-} 
+}

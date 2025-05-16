@@ -127,6 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         reportedId: _currentUser!.id,
         type: ReportType.user,
         reportedName: _currentUser!.name,
+        reporterId: currentUser.id,
       ),
     );
   }

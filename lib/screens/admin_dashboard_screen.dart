@@ -13,6 +13,14 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AuthService _authService = AuthService();
   int _selectedIndex = 0;
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  // Keys to access child screens
+  final GlobalKey<AdminPostReportsScreenState> _postReportsKey =
+      GlobalKey<AdminPostReportsScreenState>();
+  final GlobalKey<AdminUserReportsScreenState> _userReportsKey =
+      GlobalKey<AdminUserReportsScreenState>();
 
   void _onItemTapped(int index) {
     setState(() {
@@ -27,6 +35,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _refreshReports() async {
+    // Trigger refresh on the current screen
+    if (_selectedIndex == 0) {
+      await _postReportsKey.currentState?.loadReports();
+    } else {
+      await _userReportsKey.currentState?.loadReports();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -36,17 +53,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: const Text('Admin Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshReports,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _signOut,
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: const [
-          AdminPostReportsScreen(),
-          AdminUserReportsScreen(),
-        ],
+      body: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        onRefresh: _refreshReports,
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            AdminPostReportsScreen(key: _postReportsKey),
+            AdminUserReportsScreen(key: _userReportsKey),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -65,4 +90,4 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
   }
-} 
+}

@@ -99,51 +99,50 @@ class _TweetCardState extends State<TweetCard> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder:
-          (context) => Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: 'Write your comment...',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_commentController.text.trim().isEmpty) return;
-
-                      final currentUser =
-                          await widget._authService.getCurrentUserData();
-                      if (currentUser == null) return;
-
-                      final comment = Comment(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        tweetId: widget.tweet.id,
-                        user: currentUser,
-                        content: _commentController.text.trim(),
-                        createdAt: DateTime.now(),
-                      );
-
-                      await widget._tweetService.addComment(comment);
-                      _commentController.clear();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Post Comment'),
-                  ),
-                ],
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _commentController,
+                decoration: const InputDecoration(
+                  hintText: 'Write your comment...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
               ),
-            ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_commentController.text.trim().isEmpty) return;
+
+                  final currentUser =
+                      await widget._authService.getCurrentUserData();
+                  if (currentUser == null) return;
+
+                  final comment = Comment(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    tweetId: widget.tweet.id,
+                    user: currentUser,
+                    content: _commentController.text.trim(),
+                    createdAt: DateTime.now(),
+                  );
+
+                  await widget._tweetService.addComment(comment);
+                  _commentController.clear();
+                  Navigator.pop(context);
+                },
+                child: const Text('Post Comment'),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
@@ -153,72 +152,70 @@ class _TweetCardState extends State<TweetCard> {
     );
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit Tweet'),
-            content: TextField(
-              controller: _editController,
-              maxLines: 3,
-              decoration: const InputDecoration(hintText: 'Edit your tweet...'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_editController.text.trim().isNotEmpty) {
-                    await widget._tweetService.editTweet(
-                      widget.tweet.id,
-                      _editController.text.trim(),
-                      widget.tweet.imageUrls,
-                    );
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Tweet updated successfully!'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Tweet'),
+        content: TextField(
+          controller: _editController,
+          maxLines: 3,
+          decoration: const InputDecoration(hintText: 'Edit your tweet...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () async {
+              if (_editController.text.trim().isNotEmpty) {
+                await widget._tweetService.editTweet(
+                  widget.tweet.id,
+                  _editController.text.trim(),
+                  widget.tweet.imageUrls,
+                );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tweet updated successfully!'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   void _showDeleteConfirmation() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Tweet'),
-            content: const Text('Are you sure you want to delete this tweet?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await widget._tweetService.deleteTweet(widget.tweet.id);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tweet deleted successfully!'),
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Delete'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Tweet'),
+        content: const Text('Are you sure you want to delete this tweet?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () async {
+              await widget._tweetService.deleteTweet(widget.tweet.id);
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tweet deleted successfully!'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -251,6 +248,7 @@ class _TweetCardState extends State<TweetCard> {
         reportedId: widget.tweet.id,
         type: ReportType.post,
         reportedName: widget.tweet.user.name,
+        reporterId: currentUser.id,
       ),
     );
   }
@@ -348,19 +346,19 @@ class _TweetCardState extends State<TweetCard> {
                                     _showDeleteConfirmation();
                                   }
                                 },
-                                itemBuilder:
-                                    (context) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text('Edit'),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text('Delete'),
-                                      ),
-                                    ],
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete'),
+                                  ),
+                                ],
                               ),
-                            if (widget.tweet.user.id != widget._authService.currentUser?.uid)
+                            if (widget.tweet.user.id !=
+                                widget._authService.currentUser?.uid)
                               PopupMenuButton<String>(
                                 onSelected: (value) {
                                   if (value == 'report') {
@@ -408,27 +406,24 @@ class _TweetCardState extends State<TweetCard> {
                               ),
                               builder: (context, snapshot) {
                                 if (snapshot.hasData) {
-                                  final data =
-                                      snapshot.data!.data()
-                                          as Map<String, dynamic>;
+                                  final data = snapshot.data!.data()
+                                      as Map<String, dynamic>;
                                   final likes = List<String>.from(
                                     data['likes'] ?? [],
                                   );
                                   return _buildActionButton(
-                                    icon:
-                                        _isLiked
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
+                                    icon: _isLiked
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
                                     count: likes.length,
                                     onTap: _handleLike,
                                     color: _isLiked ? Colors.red : null,
                                   );
                                 }
                                 return _buildActionButton(
-                                  icon:
-                                      _isLiked
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
+                                  icon: _isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
                                   count: _likes.length,
                                   onTap: _handleLike,
                                   color: _isLiked ? Colors.red : null,
@@ -488,22 +483,20 @@ class _TweetCardState extends State<TweetCard> {
               }
 
               return Column(
-                children:
-                    comments
-                        .map(
-                          (comment) => CommentCard(
-                            comment: comment,
-                            onDelete:
-                                widget._authService.currentUser?.uid ==
-                                        comment.user.id
-                                    ? () => widget._tweetService.deleteComment(
-                                      comment.id,
-                                      widget.tweet.id,
-                                    )
-                                    : null,
-                          ),
-                        )
-                        .toList(),
+                children: comments
+                    .map(
+                      (comment) => CommentCard(
+                        comment: comment,
+                        onDelete: widget._authService.currentUser?.uid ==
+                                comment.user.id
+                            ? () => widget._tweetService.deleteComment(
+                                  comment.id,
+                                  widget.tweet.id,
+                                )
+                            : null,
+                      ),
+                    )
+                    .toList(),
               );
             },
           ),

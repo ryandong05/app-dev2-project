@@ -3,6 +3,8 @@ import '../services/auth_service.dart';
 import 'admin_dashboard_screen.dart';
 import 'first_admin_registration_screen.dart';
 
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
+
 class AdminSignInScreen extends StatefulWidget {
   const AdminSignInScreen({Key? key}) : super(key: key);
 
@@ -21,6 +23,8 @@ class _AdminSignInScreenState extends State<AdminSignInScreen> {
   bool _obscurePassword = true;
   bool _showVerificationCode = false;
   String? _errorMessage;
+  String? _verificationId;
+  Admin2FAChallenge? _admin2FAChallenge;
 
   @override
   void initState() {
@@ -84,20 +88,31 @@ class _AdminSignInScreenState extends State<AdminSignInScreen> {
     });
 
     try {
-      await _authService.adminSignInWithEmailAndPassword(
+      final result = await _authService.adminSignInWithEmailAndPassword(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-        );
-      }
-    } catch (e) {
-      if (e.toString() == '2FA_ENROLLMENT_REQUIRED') {
+      if (result is String) {
+        // 2FA enrollment (first time)
         setState(() {
+          _verificationId = result;
+          _admin2FAChallenge = null;
+          _showVerificationCode = true;
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Please enter the verification code sent to your phone'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      } else if (result is Admin2FAChallenge) {
+        // 2FA sign-in (already enrolled)
+        setState(() {
+          _admin2FAChallenge = result;
+          _verificationId = null;
           _showVerificationCode = true;
           _isLoading = false;
         });
@@ -109,8 +124,17 @@ class _AdminSignInScreenState extends State<AdminSignInScreen> {
           ),
         );
       } else {
-        _showError(e.toString());
+        // Normal sign-in (no 2FA required)
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const AdminDashboardScreen()),
+          );
+        }
       }
+    } catch (e) {
+      _showError(e.toString());
     } finally {
       if (mounted && !_showVerificationCode) {
         setState(() => _isLoading = false);
@@ -127,7 +151,21 @@ class _AdminSignInScreenState extends State<AdminSignInScreen> {
     });
 
     try {
-      await _authService.verify2FACode(_verificationCodeController.text.trim());
+      if (_admin2FAChallenge != null) {
+        // 2FA sign-in (already enrolled)
+        await _authService.resolve2FASignIn(
+          resolver: _admin2FAChallenge!.resolver,
+          smsCode: _verificationCodeController.text.trim(),
+        );
+      } else if (_verificationId != null) {
+        // 2FA enrollment (first time)
+        await _authService.complete2FAEnrollment(
+          _verificationCodeController.text.trim(),
+          _verificationId!,
+        );
+      } else {
+        throw 'Verification session expired. Please try signing in again.';
+      }
 
       if (mounted) {
         Navigator.pushReplacement(
