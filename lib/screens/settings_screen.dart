@@ -208,6 +208,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 onTap: () {},
               ),
+
+              // Logout Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: Text(
+                  'Account',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+
+              // Logout Button
+              _buildSettingItem(
+                title: 'Logout',
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Logout'),
+                      content: const Text('Are you sure you want to logout?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && mounted) {
+                    await _authService.signOut();
+                    if (mounted) {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/login',
+                        (route) => false,
+                      );
+                    }
+                  }
+                },
+                trailing: Icon(
+                  Icons.logout,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ],
           ),
           bottomNavigationBar: AppNavigationBar(
