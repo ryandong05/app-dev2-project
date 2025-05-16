@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:y/services/auth_service.dart';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
+import 'admin_sign_in_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({Key? key}) : super(key: key);
@@ -38,9 +39,66 @@ class _SignInScreenState extends State<SignInScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        // Check if the error is about a banned user
+        if (e.toString().contains('banned')) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.gpp_bad, color: Colors.red, size: 28),
+                  SizedBox(width: 12),
+                  Text('Account Banned'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your account has been banned from the platform.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Reason:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Your account has been suspended due to violation of our community guidelines.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'What to do:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'If you believe this is a mistake, please contact our support team for assistance.',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Clear the password field
+                    _passwordController.clear();
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString())),
+          );
+        }
       }
     } finally {
       if (mounted) {
@@ -183,14 +241,12 @@ class _SignInScreenState extends State<SignInScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
-                  foregroundColor:
-                      theme.brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.white,
+                  backgroundColor: theme.brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  foregroundColor: theme.brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -199,13 +255,33 @@ class _SignInScreenState extends State<SignInScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                child:
-                    _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Submit'),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Submit'),
               ),
             ),
             const SizedBox(height: 24),
+
+            // Admin sign in link
+            Align(
+              alignment: Alignment.bottomRight,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const AdminSignInScreen()),
+                  );
+                },
+                child: Text(
+                  'Admin Sign In',
+                  style: TextStyle(
+                    color: theme.primaryColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

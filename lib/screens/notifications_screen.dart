@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import '../utils/tweet_utils.dart';
-import '../widgets/app_navigation_bar.dart';
-import '../widgets/tweet_card.dart';
-import '../models/tweet.dart';
-import '../models/user.dart';
-import '../services/tweet_service.dart';
+import '../models/notification.dart' as app_notification;
+import '../services/notification_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/notification_card.dart';
+import '../widgets/app_navigation_bar.dart';
+import 'home_screen.dart';
+import 'search_screen.dart';
+import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
@@ -15,41 +17,65 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final TweetService _tweetService = TweetService();
+  final NotificationService _notificationService = NotificationService();
   final AuthService _authService = AuthService();
-  List<Tweet> _tweets = [];
+  late Stream<List<app_notification.Notification>> _notificationsStream;
 
   @override
   void initState() {
     super.initState();
-    _loadTweets();
-  }
-
-  void _loadTweets() {
-    _tweetService.getTweets().listen((tweets) {
-      setState(() {
-        _tweets = tweets;
-      });
-    });
+    _notificationsStream = _notificationService
+        .getUserNotifications(_authService.currentUser?.uid ?? '');
   }
 
   void _handleNavigation(NavBarItem item) {
-    // Handle navigation based on the selected item
     switch (item) {
       case NavBarItem.home:
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const HomeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.search:
-        Navigator.pushReplacementNamed(context, '/search');
-        break;
-      case NavBarItem.profile:
-        Navigator.pushReplacementNamed(context, '/profile');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SearchScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
       case NavBarItem.notifications:
         // Already on notifications
         break;
+      case NavBarItem.profile:
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const ProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
+        break;
       case NavBarItem.settings:
-        Navigator.pushReplacementNamed(context, '/settings');
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
+        );
         break;
     }
   }
@@ -57,69 +83,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Column(
-        children: [
-          // Navigation Bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.notifications,
-            onItemSelected: _handleNavigation,
-            showBackButton: true,
-          ),
-
-          // Notifications Content
-          Expanded(
-            child: ListView.separated(
-              itemCount: _tweets.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final tweet = _tweets[index];
-                return TweetCard(tweet: tweet);
-              },
-            ),
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Notifications'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // TODO: Navigate to notification settings
+            },
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final currentUser = await _authService.getCurrentUserData();
-          if (currentUser == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please sign in to tweet')),
-            );
-            return;
+      body: StreamBuilder<List<app_notification.Notification>>(
+        stream: _notificationsStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
 
-          TweetUtils.showTweetComposer(
-            context,
-            onTweet: (content, media) async {
-              final newTweet = Tweet(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                user: currentUser,
-                content: content,
-                timeAgo: '', // Will be set by TweetService
-                timestamp:
-                    DateTime.now(), // Will be overwritten by server timestamp
-                comments: 0,
-                reposts: 0,
-                likes: const [],
-                likedBy: const [],
-                imageUrls: media,
-                retweets: const [],
-                replies: const [],
-                hasMedia: media.isNotEmpty,
-                mediaType: media.isNotEmpty ? MediaType.image : MediaType.none,
-              );
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
 
-              await _tweetService.addTweet(newTweet);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tweet posted successfully!')),
+          final notifications = snapshot.data ?? [];
+
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Text('No notifications yet'),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              return NotificationCard(
+                notification: notifications[index],
               );
             },
           );
         },
-        backgroundColor: Colors.black,
-        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      bottomNavigationBar: AppNavigationBar(
+        selectedItem: NavBarItem.notifications,
+        onItemSelected: _handleNavigation,
       ),
     );
   }

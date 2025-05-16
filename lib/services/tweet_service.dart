@@ -4,11 +4,13 @@ import '../models/user.dart';
 import '../models/comment.dart';
 import '../utils/tweet_utils.dart';
 import 'dart:async';
+import '../services/notification_service.dart';
 
 class TweetService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'tweets';
   final String _commentsCollection = 'comments';
+  final NotificationService _notificationService = NotificationService();
 
   // Add a new tweet
   Future<void> addTweet(Tweet tweet) async {
@@ -141,23 +143,17 @@ class TweetService {
 
     // Get user info for likedBy
     final userDoc = await _firestore.collection('users').doc(userId).get();
-    final userName =
-        userDoc.exists ? userDoc.data()!['name'] ?? 'Anonymous' : 'Anonymous';
+    final userName = userDoc.exists ? userDoc.data()!['name'] ?? 'Anonymous' : 'Anonymous';
 
     // Start a batch write
     final batch = _firestore.batch();
 
     // If this is a retweet, we'll work with the original tweet first
     if (isRetweet && parentTweetId != null) {
-      final originalDoc =
-          await _firestore.collection(_collection).doc(parentTweetId).get();
+      final originalDoc = await _firestore.collection(_collection).doc(parentTweetId).get();
       if (originalDoc.exists) {
-        final originalLikes = List<String>.from(
-          originalDoc.data()!['likes'] ?? [],
-        );
-        final originalLikedBy = List<String>.from(
-          originalDoc.data()!['likedBy'] ?? [],
-        );
+        final originalLikes = List<String>.from(originalDoc.data()!['likes'] ?? []);
+        final originalLikedBy = List<String>.from(originalDoc.data()!['likedBy'] ?? []);
 
         if (originalLikes.contains(userId)) {
           // Unlike
@@ -167,6 +163,17 @@ class TweetService {
           // Like
           originalLikes.add(userId);
           originalLikedBy.add(userName);
+
+          // Create notification for the original tweet author
+          final originalTweetUser = User.fromMap(originalDoc.data()!['user']);
+          if (originalTweetUser.id != userId) {
+            await _notificationService.createLikeNotification(
+              User.fromMap(userDoc.data()!),
+              parentTweetId,
+              originalDoc.data()!['content'],
+              originalTweetUser.id,
+            );
+          }
         }
 
         // Update original tweet
@@ -176,12 +183,11 @@ class TweetService {
         });
 
         // Get all retweets of this tweet (including the current one)
-        final retweetsQuery =
-            await _firestore
-                .collection(_collection)
-                .where('isRetweet', isEqualTo: true)
-                .where('parentTweetId', isEqualTo: parentTweetId)
-                .get();
+        final retweetsQuery = await _firestore
+            .collection(_collection)
+            .where('isRetweet', isEqualTo: true)
+            .where('parentTweetId', isEqualTo: parentTweetId)
+            .get();
 
         // Update all retweets to match the original
         for (var retweetDoc in retweetsQuery.docs) {
@@ -204,6 +210,17 @@ class TweetService {
         // Like
         currentLikes.add(userId);
         currentLikedBy.add(userName);
+
+        // Create notification for the tweet author
+        final tweetUser = User.fromMap(data['user']);
+        if (tweetUser.id != userId) {
+          await _notificationService.createLikeNotification(
+            User.fromMap(userDoc.data()!),
+            tweetId,
+            data['content'],
+            tweetUser.id,
+          );
+        }
       }
 
       // Update original tweet
@@ -213,12 +230,11 @@ class TweetService {
       });
 
       // Get and update all retweets of this tweet
-      final retweetsQuery =
-          await _firestore
-              .collection(_collection)
-              .where('isRetweet', isEqualTo: true)
-              .where('parentTweetId', isEqualTo: tweetId)
-              .get();
+      final retweetsQuery = await _firestore
+          .collection(_collection)
+          .where('isRetweet', isEqualTo: true)
+          .where('parentTweetId', isEqualTo: tweetId)
+          .get();
 
       for (var retweetDoc in retweetsQuery.docs) {
         batch.update(retweetDoc.reference, {
@@ -408,8 +424,7 @@ class TweetService {
 
   // Retweet a tweet
   Future<void> retweetTweet(String tweetId, User retweetingUser) async {
-    final tweetDoc =
-        await _firestore.collection(_collection).doc(tweetId).get();
+    final tweetDoc = await _firestore.collection(_collection).doc(tweetId).get();
     if (!tweetDoc.exists) return;
 
     final tweetData = tweetDoc.data()!;
@@ -423,14 +438,13 @@ class TweetService {
         'reposts': FieldValue.increment(-1),
       });
 
-      // Delete the retweet tweet - fixed query to use retweetedBy instead of user.id
-      final retweetQuery =
-          await _firestore
-              .collection(_collection)
-              .where('isRetweet', isEqualTo: true)
-              .where('parentTweetId', isEqualTo: tweetId)
-              .where('retweetedBy', isEqualTo: retweetingUser.name)
-              .get();
+      // Delete the retweet tweet
+      final retweetQuery = await _firestore
+          .collection(_collection)
+          .where('isRetweet', isEqualTo: true)
+          .where('parentTweetId', isEqualTo: tweetId)
+          .where('retweetedBy', isEqualTo: retweetingUser.name)
+          .get();
 
       for (var doc in retweetQuery.docs) {
         await doc.reference.delete();
@@ -468,6 +482,16 @@ class TweetService {
       );
 
       await addTweet(retweet);
+
+      // Create notification for the original tweet author
+      if (originalTweet.user.id != retweetingUser.id) {
+        await _notificationService.createRetweetNotification(
+          retweetingUser,
+          tweetId,
+          originalTweet.content,
+          originalTweet.user.id,
+        );
+      }
     }
   }
 

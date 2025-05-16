@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:y/services/auth_service.dart';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -110,16 +110,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .collection('users')
           .doc(userCredential.user!.uid)
           .set({
-            'name': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'phone':
-                '${_phoneCodeController.text}${_phoneNumberController.text}',
-            'dob': _dobController.text,
-            'gender': _selectedGender,
-            'country': _selectedCountry,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': '${_phoneCodeController.text}${_phoneNumberController.text}',
+        'dob': _dobController.text,
+        'gender': _selectedGender,
+        'country': _selectedCountry,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -151,14 +150,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary:
-                  theme.brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-              onPrimary:
-                  theme.brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.white,
+              primary: theme.brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black,
+              onPrimary: theme.brightness == Brightness.dark
+                  ? Colors.black
+                  : Colors.white,
               onSurface: theme.textTheme.bodyLarge?.color ?? Colors.black,
             ),
           ),
@@ -450,18 +447,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               borderSide: BorderSide(color: theme.primaryColor),
                             ),
                           ),
-                          items:
-                              _genders.map((String gender) {
-                                return DropdownMenuItem(
-                                  value: gender,
-                                  child: Text(
-                                    gender,
-                                    style: TextStyle(
-                                      color: theme.textTheme.bodyLarge?.color,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                          items: _genders.map((String gender) {
+                            return DropdownMenuItem(
+                              value: gender,
+                              child: Text(
+                                gender,
+                                style: TextStyle(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                ),
+                              ),
+                            );
+                          }).toList(),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
                               setState(() {
@@ -498,18 +494,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderSide: BorderSide(color: theme.primaryColor),
                   ),
                 ),
-                items:
-                    _countries.map((String country) {
-                      return DropdownMenuItem(
-                        value: country,
-                        child: Text(
-                          country,
-                          style: TextStyle(
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                items: _countries.map((String country) {
+                  return DropdownMenuItem(
+                    value: country,
+                    child: Text(
+                      country,
+                      style: TextStyle(
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                  );
+                }).toList(),
                 onChanged: (String? newValue) {
                   if (newValue != null) {
                     setState(() {
@@ -527,14 +522,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _signUp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        theme.brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black,
-                    foregroundColor:
-                        theme.brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
+                    backgroundColor: theme.brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                    foregroundColor: theme.brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -543,10 +536,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Submit'),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Submit'),
                 ),
               ),
             ],

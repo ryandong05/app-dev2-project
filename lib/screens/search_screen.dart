@@ -37,30 +37,50 @@ class _SearchScreenState extends State<SearchScreen> {
     // Handle navigation based on the selected item
     switch (item) {
       case NavBarItem.home:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const HomeScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.search:
         // Already on search
         break;
       case NavBarItem.profile:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const ProfileScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.notifications:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const NotificationsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
       case NavBarItem.settings:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const SettingsScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) => child,
+          ),
         );
         break;
     }
@@ -72,15 +92,16 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: Column(
         children: [
-          // Navigation Bar
-          AppNavigationBar(
-            selectedItem: NavBarItem.search,
-            onItemSelected: _handleNavigation,
-            showBackButton: true,
-          ),
-
           // Search Bar
           Container(
             color: theme.scaffoldBackgroundColor,
@@ -115,43 +136,22 @@ class _SearchScreenState extends State<SearchScreen> {
               onChanged: (value) {
                 setState(() {});
               },
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  // Perform search
-                }
-              },
             ),
           ),
-
-          // This would be where search results appear
+          // Search Results
           Expanded(
-            child:
-                _searchController.text.isEmpty
-                    ? const Center(
-                      child: Text(
-                        'Try searching for people, topics, or keywords',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    )
-                    : const SizedBox(), // Search results would go here
+            child: Center(
+              child: Text(
+                'Search results will appear here',
+                style: TextStyle(color: theme.textTheme.bodySmall?.color),
+              ),
+            ),
           ),
         ],
       ),
-      // Inside the build method of _SearchScreenState, update the floatingActionButton:
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          TweetUtils.showTweetComposer(
-            context,
-            onTweet: (content, media) {
-              // Handle the new tweet
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Posted: $content')));
-            },
-          );
-        },
-        backgroundColor: Colors.black,
-        child: const Icon(Icons.add, color: Colors.white),
+      bottomNavigationBar: AppNavigationBar(
+        selectedItem: NavBarItem.search,
+        onItemSelected: _handleNavigation,
       ),
     );
   }
