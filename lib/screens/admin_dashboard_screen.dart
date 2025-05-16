@@ -47,24 +47,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      backgroundColor: colorScheme.background,
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshReports,
+        backgroundColor: colorScheme.surface,
+        title: Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            color: colorScheme.onSurface,
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
+        ),
+        actions: [
+          IconTheme(
+            data: IconThemeData(
+              color: colorScheme.onSurface,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _refreshReports,
+            ),
+          ),
+          IconTheme(
+            data: IconThemeData(
+              color: colorScheme.onSurface,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _signOut,
+            ),
           ),
         ],
       ),
       body: RefreshIndicator(
         key: _refreshIndicatorKey,
         onRefresh: _refreshReports,
+        color: colorScheme.primary,
+        backgroundColor: colorScheme.surface,
         child: IndexedStack(
           index: _selectedIndex,
           children: [
@@ -74,18 +94,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        backgroundColor: colorScheme.surface,
+        selectedItemColor: colorScheme.primary,
+        unselectedItemColor: colorScheme.onSurface.withOpacity(0.6),
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.post_add),
+            icon: IconTheme(
+              data: IconThemeData(
+                color: _selectedIndex == 0
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withOpacity(0.6),
+              ),
+              child: const Icon(Icons.post_add),
+            ),
             label: 'Post Reports',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: IconTheme(
+              data: IconThemeData(
+                color: _selectedIndex == 1
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withOpacity(0.6),
+              ),
+              child: const Icon(Icons.person),
+            ),
             label: 'User Reports',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: theme.primaryColor,
         onTap: _onItemTapped,
       ),
     );

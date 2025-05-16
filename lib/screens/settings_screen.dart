@@ -250,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     await _authService.signOut();
                     if (mounted) {
                       Navigator.of(context).pushNamedAndRemoveUntil(
-                        '/login',
+                        '/',
                         (route) => false,
                       );
                     }

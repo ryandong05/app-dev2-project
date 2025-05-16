@@ -6,23 +6,46 @@ import '../models/user.dart';
 import '../models/settings_model.dart';
 import 'package:provider/provider.dart';
 
+// This needs to be a top-level function
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  print('Handling a background message: ${message.messageId}');
+}
+
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'notifications';
-  static const String _channelKey = 'basic_channel';
-  static const String _channelName = 'Basic Notifications';
-  static const String _channelDescription =
-      'Notification channel for social interactions';
 
   NotificationService() {
     initializeNotifications();
   }
 
   Future<void> initializeNotifications() async {
-    await FirebaseMessaging.instance.requestPermission();
+    // Request permission for notifications
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      // Handle foreground messages here if needed
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+      }
     });
+
+    // Handle background messages
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // Get the token
+    String? token = await FirebaseMessaging.instance.getToken();
+    print('FCM Token: $token');
   }
 
   // Check if notifications are enabled for a user
@@ -53,8 +76,8 @@ class NotificationService {
         .doc(notification.id)
         .set(notification.toMap());
 
-    // Send push notification logic should be implemented via FCM server or Cloud Functions.
-    // Here, you can only trigger local logic or rely on Firestore triggers for FCM.
+    // Note: To send actual push notifications, you'll need to implement a server-side solution
+    // using Firebase Cloud Functions or your own server that uses the Firebase Admin SDK
   }
 
   String _getNotificationTitle(app_notification.Notification notification) {

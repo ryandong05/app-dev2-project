@@ -445,6 +445,7 @@ class _FirstAdminRegistrationScreenState
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             isMet ? Icons.check_circle : Icons.circle_outlined,
@@ -452,10 +453,12 @@ class _FirstAdminRegistrationScreenState
             size: 16,
           ),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: TextStyle(
-              color: isMet ? Colors.green : theme.textTheme.bodySmall?.color,
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: isMet ? Colors.green : theme.textTheme.bodySmall?.color,
+              ),
             ),
           ),
         ],

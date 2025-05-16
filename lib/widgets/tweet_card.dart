@@ -194,8 +194,8 @@ class _TweetCardState extends State<TweetCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Tweet'),
-        content: const Text('Are you sure you want to delete this tweet?'),
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -305,7 +305,7 @@ class _TweetCardState extends State<TweetCard> {
                     child: CircleAvatar(
                       radius: 20,
                       backgroundImage: NetworkImage(
-                        widget.tweet.user.profileImageUrl,
+                        'https://api.dicebear.com/7.x/avataaars/svg?seed=${widget.tweet.user.handle}',
                       ),
                     ),
                   ),
