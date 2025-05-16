@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'user.dart' as app_user;
+import 'dart:developer' as developer;
 
 enum ReportType { post, user }
+
 enum ReportStatus { pending, reviewed, resolved, dismissed }
 
 class Report {
@@ -44,8 +46,8 @@ class Report {
       status: ReportStatus.values[data['status'] ?? 0],
       adminNotes: data['adminNotes'],
       resolvedBy: data['resolvedBy'],
-      resolvedAt: data['resolvedAt'] != null 
-          ? (data['resolvedAt'] as Timestamp).toDate() 
+      resolvedAt: data['resolvedAt'] != null
+          ? (data['resolvedAt'] as Timestamp).toDate()
           : null,
     );
   }
@@ -90,14 +92,15 @@ class PostReport {
   });
 
   factory PostReport.fromMap(Map<String, dynamic> map) {
+    developer.log('Creating PostReport from map: $map');
     return PostReport(
       id: map['id'] ?? '',
       postId: map['postId'] ?? '',
       reporterId: map['reporterId'] ?? '',
       reportedUserId: map['reportedUserId'] ?? '',
       postContent: map['postContent'] ?? '',
-      reporterUsername: map['reporterUsername'] ?? '',
-      reportedUsername: map['reportedUsername'] ?? '',
+      reporterUsername: map['reporterUsername'] ?? 'Unknown User',
+      reportedUsername: map['reportedUsername'] ?? 'Unknown User',
       reason: map['reason'] ?? '',
       timestamp: (map['timestamp'] as Timestamp).toDate(),
     );
@@ -138,12 +141,13 @@ class UserReport {
   });
 
   factory UserReport.fromMap(Map<String, dynamic> map) {
+    developer.log('Creating UserReport from map: $map');
     return UserReport(
       id: map['id'] ?? '',
       reportedUserId: map['reportedUserId'] ?? '',
       reporterId: map['reporterId'] ?? '',
-      reportedUsername: map['reportedUsername'] ?? '',
-      reporterUsername: map['reporterUsername'] ?? '',
+      reportedUsername: map['reportedUsername'] ?? 'Unknown User',
+      reporterUsername: map['reporterUsername'] ?? 'Unknown User',
       reason: map['reason'] ?? '',
       timestamp: (map['timestamp'] as Timestamp).toDate(),
     );
@@ -160,4 +164,4 @@ class UserReport {
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }
-} 
+}

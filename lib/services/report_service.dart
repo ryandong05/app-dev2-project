@@ -33,6 +33,18 @@ class ReportService {
         throw Exception('User not found');
       }
 
+      final reporterUsername = reporterDoc.data()?['handle'] ??
+          reporterDoc.data()?['name'] ??
+          reporterDoc.data()?['username'] ??
+          'Unknown';
+      final reportedUsername = reportedUserDoc.data()?['handle'] ??
+          reportedUserDoc.data()?['name'] ??
+          reportedUserDoc.data()?['username'] ??
+          'Unknown';
+
+      developer.log('Reporter username: $reporterUsername');
+      developer.log('Reported username: $reportedUsername');
+
       // Create post report
       final postReport = PostReport(
         id: report.id,
@@ -40,14 +52,15 @@ class ReportService {
         reporterId: report.reporterId,
         reportedUserId: postData['user']['id'],
         postContent: postData['content'],
-        reporterUsername: reporterDoc.data()?['username'] ?? 'Unknown',
-        reportedUsername: reportedUserDoc.data()?['username'] ?? 'Unknown',
+        reporterUsername: reporterUsername,
+        reportedUsername: reportedUsername,
         reason: report.reason,
         timestamp: report.createdAt,
       );
 
       developer
           .log('Saving post report to: reports/posts/reports/${report.id}');
+      developer.log('Post report data: ${postReport.toMap()}');
       // Save to nested collection
       await _firestore
           .collection('reports')
@@ -69,19 +82,32 @@ class ReportService {
         throw Exception('User not found');
       }
 
+      final reporterUsername = reporterDoc.data()?['handle'] ??
+          reporterDoc.data()?['name'] ??
+          reporterDoc.data()?['username'] ??
+          'Unknown';
+      final reportedUsername = reportedUserDoc.data()?['handle'] ??
+          reportedUserDoc.data()?['name'] ??
+          reportedUserDoc.data()?['username'] ??
+          'Unknown';
+
+      developer.log('Reporter username: $reporterUsername');
+      developer.log('Reported username: $reportedUsername');
+
       // Create user report
       final userReport = UserReport(
         id: report.id,
         reportedUserId: report.reportedId,
         reporterId: report.reporterId,
-        reportedUsername: reportedUserDoc.data()?['username'] ?? 'Unknown',
-        reporterUsername: reporterDoc.data()?['username'] ?? 'Unknown',
+        reportedUsername: reportedUsername,
+        reporterUsername: reporterUsername,
         reason: report.reason,
         timestamp: report.createdAt,
       );
 
       developer
           .log('Saving user report to: reports/users/reports/${report.id}');
+      developer.log('User report data: ${userReport.toMap()}');
       // Save to nested collection
       await _firestore
           .collection('reports')
@@ -178,7 +204,11 @@ class ReportService {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
-        return PostReport.fromMap(data);
+        developer.log('Raw post report data from Firestore: $data');
+        final report = PostReport.fromMap(data);
+        developer.log(
+            'Processed post report: reporter=${report.reporterUsername}, reported=${report.reportedUsername}');
+        return report;
       }).toList();
     });
   }
@@ -197,7 +227,11 @@ class ReportService {
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
-        return UserReport.fromMap(data);
+        developer.log('Raw user report data from Firestore: $data');
+        final report = UserReport.fromMap(data);
+        developer.log(
+            'Processed user report: reporter=${report.reporterUsername}, reported=${report.reportedUsername}');
+        return report;
       }).toList();
     });
   }

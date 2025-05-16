@@ -15,6 +15,7 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
   List<UserReport> _reports = [];
   bool _isLoading = true;
   String? _error;
+  bool _mounted = true;
 
   @override
   void initState() {
@@ -22,7 +23,15 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
     loadReports();
   }
 
+  @override
+  void dispose() {
+    _mounted = false;
+    super.dispose();
+  }
+
   Future<void> loadReports() async {
+    if (!_mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -31,7 +40,7 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
     try {
       _reportService.getUserReports().listen(
         (reports) {
-          if (mounted) {
+          if (_mounted) {
             setState(() {
               _reports = reports;
               _isLoading = false;
@@ -39,7 +48,7 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
           }
         },
         onError: (error) {
-          if (mounted) {
+          if (_mounted) {
             setState(() {
               _error = error.toString();
               _isLoading = false;
@@ -48,13 +57,24 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
         },
       );
     } catch (e) {
-      if (mounted) {
+      if (_mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
       }
     }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!_mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   @override
@@ -152,14 +172,16 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
                   children: [
                     TextButton(
                       onPressed: () async {
-                        await _reportService.dismissUserReport(report.id);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Report dismissed'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                        try {
+                          await _reportService.dismissUserReport(report.id);
+                          if (_mounted) {
+                            _showSnackBar('Report dismissed');
+                          }
+                        } catch (e) {
+                          if (_mounted) {
+                            _showSnackBar('Error dismissing report: $e',
+                                isError: true);
+                          }
                         }
                       },
                       child: const Text('Dismiss'),
@@ -167,14 +189,16 @@ class AdminUserReportsScreenState extends State<AdminUserReportsScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () async {
-                        await _reportService.banUser(report.reportedUserId);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('User banned'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        try {
+                          await _reportService.banUser(report.reportedUserId);
+                          if (_mounted) {
+                            _showSnackBar('User banned');
+                          }
+                        } catch (e) {
+                          if (_mounted) {
+                            _showSnackBar('Error banning user: $e',
+                                isError: true);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(

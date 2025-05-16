@@ -17,6 +17,7 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
   bool _isLoading = true;
   String? _error;
   StreamSubscription? _reportsSubscription;
+  bool _mounted = true;
 
   @override
   void initState() {
@@ -26,12 +27,14 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
 
   @override
   void dispose() {
+    _mounted = false;
     _reportsSubscription?.cancel();
     super.dispose();
   }
 
   Future<void> loadReports() async {
-    developer.log('Loading post reports');
+    if (!_mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -41,8 +44,7 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
       _reportsSubscription?.cancel();
       _reportsSubscription = _reportService.getPostReports().listen(
         (reports) {
-          developer.log('Received ${reports.length} post reports');
-          if (mounted) {
+          if (_mounted) {
             setState(() {
               _reports = reports;
               _isLoading = false;
@@ -50,8 +52,7 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
           }
         },
         onError: (error) {
-          developer.log('Error loading post reports: $error');
-          if (mounted) {
+          if (_mounted) {
             setState(() {
               _error = error.toString();
               _isLoading = false;
@@ -60,14 +61,24 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
         },
       );
     } catch (e) {
-      developer.log('Exception loading post reports: $e');
-      if (mounted) {
+      if (_mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
       }
     }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!_mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   @override
@@ -157,14 +168,16 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
                   children: [
                     TextButton(
                       onPressed: () async {
-                        await _reportService.dismissPostReport(report.id);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Report dismissed'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                        try {
+                          await _reportService.dismissPostReport(report.id);
+                          if (_mounted) {
+                            _showSnackBar('Report dismissed');
+                          }
+                        } catch (e) {
+                          if (_mounted) {
+                            _showSnackBar('Error dismissing report: $e',
+                                isError: true);
+                          }
                         }
                       },
                       child: const Text('Dismiss'),
@@ -172,14 +185,17 @@ class AdminPostReportsScreenState extends State<AdminPostReportsScreen> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () async {
-                        await _reportService.deleteReportedPost(report.postId);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Post deleted'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                        try {
+                          await _reportService
+                              .deleteReportedPost(report.postId);
+                          if (_mounted) {
+                            _showSnackBar('Post deleted');
+                          }
+                        } catch (e) {
+                          if (_mounted) {
+                            _showSnackBar('Error deleting post: $e',
+                                isError: true);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
