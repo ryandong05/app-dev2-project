@@ -258,50 +258,133 @@ class ReportService {
 
   // Delete reported post
   Future<void> deleteReportedPost(String postId) async {
-    // First delete the post
-    await _firestore.collection('posts').doc(postId).delete();
+    developer.log('Attempting to delete post: $postId');
+    try {
+      // First delete the post from tweets collection
+      final postRef = _firestore.collection('tweets').doc(postId);
+      final postDoc = await postRef.get();
 
-    // Then delete all reports for this post
-    final reportsSnapshot = await _firestore
-        .collection('reports')
-        .doc('posts')
-        .collection('reports')
-        .where('postId', isEqualTo: postId)
-        .get();
+      if (!postDoc.exists) {
+        developer.log('Post not found in tweets collection: $postId');
+        throw Exception('Post not found');
+      }
 
-    for (var doc in reportsSnapshot.docs) {
-      await doc.reference.delete();
+      await postRef.delete();
+      developer.log('Successfully deleted post from tweets collection');
+
+      // Then delete all reports for this post
+      final reportsSnapshot = await _firestore
+          .collection('reports')
+          .doc('posts')
+          .collection('reports')
+          .where('postId', isEqualTo: postId)
+          .get();
+
+      developer.log('Found ${reportsSnapshot.docs.length} reports to delete');
+      for (var doc in reportsSnapshot.docs) {
+        await doc.reference.delete();
+        developer.log('Deleted report: ${doc.id}');
+      }
+      developer.log('Successfully deleted all reports for post: $postId');
+    } catch (e) {
+      developer.log('Error deleting post: $e');
+      throw Exception('Failed to delete post: $e');
     }
   }
 
   // Ban reported user
   Future<void> banUser(String userId) async {
-    await _firestore.collection('users').doc(userId).update({
-      'isBanned': true,
-      'bannedAt': FieldValue.serverTimestamp(),
-    });
+    developer.log('Attempting to ban user: $userId');
+    try {
+      // First get all posts by this user
+      final postsSnapshot = await _firestore
+          .collection('tweets')
+          .where('user.id', isEqualTo: userId)
+          .get();
 
-    // Delete all reports for this user
-    final postReportsSnapshot = await _firestore
-        .collection('reports')
-        .doc('posts')
-        .collection('reports')
-        .where('reportedUserId', isEqualTo: userId)
-        .get();
+      developer.log('Found ${postsSnapshot.docs.length} posts to delete');
 
-    final userReportsSnapshot = await _firestore
-        .collection('reports')
-        .doc('users')
-        .collection('reports')
-        .where('reportedUserId', isEqualTo: userId)
-        .get();
+      // Delete all posts and their comments
+      for (var postDoc in postsSnapshot.docs) {
+        // Delete all comments for this post
+        final commentsSnapshot = await _firestore
+            .collection('tweets')
+            .doc(postDoc.id)
+            .collection('comments')
+            .get();
 
-    for (var doc in postReportsSnapshot.docs) {
-      await doc.reference.delete();
-    }
+        developer.log(
+            'Found ${commentsSnapshot.docs.length} comments to delete for post ${postDoc.id}');
 
-    for (var doc in userReportsSnapshot.docs) {
-      await doc.reference.delete();
+        for (var commentDoc in commentsSnapshot.docs) {
+          await commentDoc.reference.delete();
+          developer.log('Deleted comment: ${commentDoc.id}');
+        }
+
+        // Delete the post
+        await postDoc.reference.delete();
+        developer.log('Deleted post: ${postDoc.id}');
+      }
+
+      // Delete all comments made by this user on other posts
+      final allPostsSnapshot = await _firestore.collection('tweets').get();
+      for (var postDoc in allPostsSnapshot.docs) {
+        final userCommentsSnapshot = await _firestore
+            .collection('tweets')
+            .doc(postDoc.id)
+            .collection('comments')
+            .where('user.id', isEqualTo: userId)
+            .get();
+
+        developer.log(
+            'Found ${userCommentsSnapshot.docs.length} comments by user on post ${postDoc.id}');
+
+        for (var commentDoc in userCommentsSnapshot.docs) {
+          await commentDoc.reference.delete();
+          developer.log('Deleted comment: ${commentDoc.id}');
+        }
+      }
+
+      // Update user document to mark as banned
+      await _firestore.collection('users').doc(userId).update({
+        'isBanned': true,
+        'bannedAt': FieldValue.serverTimestamp(),
+      });
+      developer.log('Updated user document to mark as banned');
+
+      // Delete all reports for this user
+      final postReportsSnapshot = await _firestore
+          .collection('reports')
+          .doc('posts')
+          .collection('reports')
+          .where('reportedUserId', isEqualTo: userId)
+          .get();
+
+      final userReportsSnapshot = await _firestore
+          .collection('reports')
+          .doc('users')
+          .collection('reports')
+          .where('reportedUserId', isEqualTo: userId)
+          .get();
+
+      developer.log(
+          'Found ${postReportsSnapshot.docs.length} post reports and ${userReportsSnapshot.docs.length} user reports to delete');
+
+      for (var doc in postReportsSnapshot.docs) {
+        await doc.reference.delete();
+        developer.log('Deleted post report: ${doc.id}');
+      }
+
+      for (var doc in userReportsSnapshot.docs) {
+        await doc.reference.delete();
+        developer.log('Deleted user report: ${doc.id}');
+      }
+
+      developer
+          .log('Successfully banned user and cleaned up all their content');
+    } catch (e) {
+      developer.log('Error banning user: $e');
+      throw Exception('Failed to ban user: $e');
     }
   }
 }
