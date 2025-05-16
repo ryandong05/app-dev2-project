@@ -46,16 +46,17 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _loadUserData() async {
-    final user = widget.userId != null
+    final profileUser = widget.userId != null
         ? await _authService.getUserData(widget.userId!)
         : await _authService.getCurrentUserData();
+    final loggedInUser = await _authService.getCurrentUserData();
     if (mounted) {
       setState(() {
-        _currentUser = user;
-        _currentUserId = user?.id;
+        _currentUser = profileUser;
+        _currentUserId = loggedInUser?.id;
       });
-      if (user != null) {
-        _loadFollowersAndFollowing(user.id);
+      if (profileUser != null) {
+        _loadFollowersAndFollowing(profileUser.id);
       }
     }
   }
@@ -278,8 +279,33 @@ class _ProfileScreenState extends State<ProfileScreen>
               children: [
                 if (_currentUserId != null &&
                     _currentUserId != _currentUser!.id)
-                  OutlinedButton(
+                  ElevatedButton(
                     onPressed: _showReportDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.flag, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'Report User',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                if (_currentUserId == _currentUser!.id)
+                  OutlinedButton(
+                    onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -288,31 +314,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                       foregroundColor: theme.textTheme.bodyLarge?.color,
                     ),
                     child: Text(
-                      'Report',
+                      'Edit profile',
                       style: TextStyle(
                         color: theme.textTheme.bodyLarge?.color,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    side: BorderSide(color: theme.dividerColor),
-                    foregroundColor: theme.textTheme.bodyLarge?.color,
-                  ),
-                  child: Text(
-                    'Edit profile',
-                    style: TextStyle(
-                      color: theme.textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

@@ -8,6 +8,7 @@ import '../services/tweet_service.dart';
 import '../services/auth_service.dart';
 import '../services/report_service.dart';
 import '../utils/tweet_utils.dart';
+import '../screens/profile_screen.dart';
 import 'comment_card.dart';
 import 'tweet_composer.dart';
 import 'report_dialog.dart';
@@ -290,10 +291,22 @@ class _TweetCardState extends State<TweetCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Profile image
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundImage: NetworkImage(
-                      widget.tweet.user.profileImageUrl,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileScreen(
+                            userId: widget.tweet.user.id,
+                          ),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundImage: NetworkImage(
+                        widget.tweet.user.profileImageUrl,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
