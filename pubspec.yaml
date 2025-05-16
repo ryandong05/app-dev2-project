@@ -39,7 +39,7 @@ dependencies:
   firebase_auth: ^4.17.4
   cloud_firestore: ^4.15.4
   provider: ^6.1.1
-  awesome_notifications: ^0.9.3
+  firebase_messaging: ^14.7.15
 
 dev_dependencies:
   flutter_test:

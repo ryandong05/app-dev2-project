@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../models/notification.dart' as app_notification;
 import '../models/user.dart';
@@ -17,25 +17,10 @@ class NotificationService {
   }
 
   Future<void> initializeNotifications() async {
-    await AwesomeNotifications().initialize(
-      null, // Use default icon
-      [
-        NotificationChannel(
-          channelKey: _channelKey,
-          channelName: _channelName,
-          channelDescription: _channelDescription,
-          defaultColor: Colors.blue,
-          ledColor: Colors.white,
-          importance: NotificationImportance.High,
-        )
-      ],
-    );
-
-    // Request notification permissions
-    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
-    if (!isAllowed) {
-      await AwesomeNotifications().requestPermissionToSendNotifications();
-    }
+    await FirebaseMessaging.instance.requestPermission();
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // Handle foreground messages here if needed
+    });
   }
 
   // Create a new notification
@@ -47,16 +32,8 @@ class NotificationService {
         .doc(notification.id)
         .set(notification.toMap());
 
-    // Send push notification
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: DateTime.now().millisecondsSinceEpoch ~/ 1000, // Unique ID
-        channelKey: _channelKey,
-        title: _getNotificationTitle(notification),
-        body: notification.message,
-        notificationLayout: NotificationLayout.Default,
-      ),
-    );
+    // Send push notification logic should be implemented via FCM server or Cloud Functions.
+    // Here, you can only trigger local logic or rely on Firestore triggers for FCM.
   }
 
   String _getNotificationTitle(app_notification.Notification notification) {

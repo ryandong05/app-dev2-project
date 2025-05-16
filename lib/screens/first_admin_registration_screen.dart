@@ -433,6 +433,7 @@ class _FirstAdminRegistrationScreenState
                     : const Text('Create Admin Account'),
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),

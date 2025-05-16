@@ -118,12 +118,37 @@ class AuthService {
     String password,
   ) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      print('DEBUG: Attempting Firebase sign in for email: $email');
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      print(
+          'DEBUG: Firebase sign in successful for user: ${credential.user?.uid}');
+      return credential;
     } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      print('DEBUG: Firebase Auth Exception: ${e.code} - ${e.message}');
+      switch (e.code) {
+        case 'user-not-found':
+          throw 'No user found with this email.';
+        case 'wrong-password':
+          throw 'Wrong password provided.';
+        case 'invalid-email':
+          throw 'Email is invalid.';
+        case 'user-disabled':
+          throw 'This user has been disabled.';
+        case 'too-many-requests':
+          throw 'Too many failed login attempts. Please try again later.';
+        case 'network-request-failed':
+          throw 'Network error. Please check your internet connection.';
+        default:
+          print('DEBUG: Unhandled Firebase Auth error code: ${e.code}');
+          throw 'Authentication failed: ${e.message}';
+      }
+    } catch (e, stackTrace) {
+      print('DEBUG: Unexpected error during sign in: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      throw 'An error occurred during sign in. Please try again.';
     }
   }
 
@@ -181,28 +206,161 @@ class AuthService {
     String password,
   ) async {
     try {
+      print('DEBUG: Starting admin sign-in process for email: $email');
+
       // First verify if the user is an admin
-      final userCredential = await signInWithEmailAndPassword(email, password);
+      print('DEBUG: Attempting to sign in with email and password');
+      UserCredential? userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(email, password);
+        print('DEBUG: Basic sign-in successful, checking admin status');
+      } catch (e) {
+        print('DEBUG: Sign in failed: $e');
+        rethrow; // Re-throw the error to be handled by the outer catch
+      }
+
+      if (userCredential.user == null) {
+        print('DEBUG: User credential is null after successful sign in');
+        throw 'Authentication failed. Please try again.';
+      }
+
       final isUserAdmin = await isAdmin(userCredential.user!.uid);
+      print('DEBUG: Admin check result: $isUserAdmin');
 
       if (!isUserAdmin) {
+        print('DEBUG: User is not an admin, signing out');
         await signOut();
         throw 'Access denied. Not an admin user.';
       }
 
-      // Enable 2FA if not already enabled
-      final enrolledFactors =
-          await userCredential.user!.multiFactor.getEnrolledFactors();
-      if (enrolledFactors.isEmpty) {
-        // TODO: Implement 2FA enrollment flow
-        throw '2FA not set up. Please contact system administrator.';
+      // Check if 2FA is required
+      print('DEBUG: Checking if 2FA is required');
+      final user = userCredential.user;
+      if (user == null) {
+        print('DEBUG: User is null when checking 2FA');
+        throw 'Authentication failed. Please try again.';
       }
 
+      final multiFactorData = await user.multiFactor.getEnrolledFactors();
+      print('DEBUG: Number of enrolled 2FA factors: ${multiFactorData.length}');
+
+      if (multiFactorData.isEmpty) {
+        print('DEBUG: No 2FA factors enrolled, starting enrollment process');
+
+        // Get the user's phone number from admin document
+        final adminDoc = await _firestore
+            .collection('admins')
+            .doc(userCredential.user!.uid)
+            .get();
+        if (!adminDoc.exists || adminDoc.data()?['phoneNumber'] == null) {
+          throw 'Phone number not found for admin account. Please contact system administrator.';
+        }
+
+        final phoneNumber = adminDoc.data()!['phoneNumber'] as String;
+        print('DEBUG: Found phone number for 2FA: $phoneNumber');
+
+        // Start 2FA enrollment
+        final session = await user.multiFactor.getSession();
+
+        // Send verification code
+        await _auth.verifyPhoneNumber(
+          phoneNumber: phoneNumber,
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            print('DEBUG: Phone verification completed automatically');
+            await user.multiFactor.enroll(
+              PhoneMultiFactorGenerator.getAssertion(credential),
+            );
+          },
+          verificationFailed: (FirebaseAuthException e) {
+            print('DEBUG: Phone verification failed: ${e.code} - ${e.message}');
+            throw 'Failed to verify phone number: ${e.message}';
+          },
+          codeSent: (String verificationId, int? resendToken) {
+            print('DEBUG: Verification code sent to phone');
+            _verificationId = verificationId;
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {
+            print('DEBUG: Code auto retrieval timeout');
+            _verificationId = verificationId;
+          },
+        );
+
+        // Return a special response indicating 2FA enrollment is needed
+        throw '2FA_ENROLLMENT_REQUIRED';
+      }
+
+      print('DEBUG: Admin sign-in successful with 2FA');
       return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+    } catch (e, stackTrace) {
+      print('DEBUG: Unexpected error during admin sign-in: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      if (e is String) {
+        throw e; // Re-throw string errors as they are already formatted
+      }
+      throw 'An error occurred during sign-in. Please try again.';
     }
   }
+
+  // Complete 2FA enrollment with verification code
+  Future<UserCredential> complete2FAEnrollment(String verificationCode) async {
+    try {
+      print('DEBUG: Completing 2FA enrollment with verification code');
+
+      if (_verificationId == null) {
+        throw 'No verification ID found. Please try signing in again.';
+      }
+
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: verificationCode,
+      );
+
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw 'No user found. Please try signing in again.';
+      }
+
+      await user.multiFactor.enroll(
+        PhoneMultiFactorGenerator.getAssertion(credential),
+      );
+
+      print('DEBUG: 2FA enrollment completed successfully');
+      return await user.reauthenticateWithCredential(credential);
+    } catch (e) {
+      print('DEBUG: Error completing 2FA enrollment: $e');
+      rethrow;
+    }
+  }
+
+  // Verify 2FA code during sign in
+  Future<UserCredential> verify2FACode(String verificationCode) async {
+    try {
+      print('DEBUG: Verifying 2FA code');
+
+      if (_verificationId == null) {
+        throw 'No verification ID found. Please try signing in again.';
+      }
+
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: verificationCode,
+      );
+
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw 'No user found. Please try signing in again.';
+      }
+
+      print('DEBUG: 2FA verification successful');
+      return await user.reauthenticateWithCredential(credential);
+    } catch (e) {
+      print('DEBUG: Error verifying 2FA code: $e');
+      rethrow;
+    }
+  }
+
+  // Store verification ID for 2FA
+  String? _verificationId;
 
   // Get user data by ID
   Future<app_user.User?> getUserData(String userId) async {
