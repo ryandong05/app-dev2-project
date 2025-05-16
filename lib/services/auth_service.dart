@@ -222,4 +222,61 @@ class AuthService {
           : null,
     );
   }
+
+  // Check if there are any admins in the database
+  Future<bool> hasAnyAdmins() async {
+    final adminSnapshot = await _firestore.collection('admins').limit(1).get();
+    return adminSnapshot.docs.isNotEmpty;
+  }
+
+  // Register first admin
+  Future<UserCredential> registerFirstAdmin(
+    String email,
+    String password,
+    String phoneNumber,
+  ) async {
+    try {
+      // Check if there are any existing admins
+      final hasAdmins = await hasAnyAdmins();
+      if (hasAdmins) {
+        throw 'Admin registration is not allowed. Please contact an existing admin.';
+      }
+
+      // Create the user account
+      final userCredential = await signUpWithEmailAndPassword(email, password);
+
+      // Send email verification
+      await userCredential.user!.sendEmailVerification();
+
+      // Create admin document
+      await _firestore.collection('admins').doc(userCredential.user!.uid).set({
+        'email': email,
+        'phoneNumber': phoneNumber,
+        'isSuperAdmin': true,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  // Check if email is verified
+  Future<bool> isEmailVerified() async {
+    final user = currentUser;
+    if (user == null) return false;
+
+    // Reload user to get latest verification status
+    await user.reload();
+    return user.emailVerified;
+  }
+
+  // Resend verification email
+  Future<void> resendVerificationEmail() async {
+    final user = currentUser;
+    if (user == null) throw 'No user logged in';
+    await user.sendEmailVerification();
+  }
 }
